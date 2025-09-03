@@ -32,15 +32,25 @@ jobs:
           pip install build twine
 
       - name: Install Node.js dependencies
-        run: npm install
+        run: npm ci --ignore-scripts
 
       - name: Run tests
         run: |
           # Add test commands here when available
           echo "Tests would run here"
 
+      - name: Check if NPM version exists
+        id: npm-check
+        run: |
+          if npm view @kirti676/api-tester-mcp@$(node -p "require('./package.json').version") > /dev/null 2>&1; then
+            echo "version_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish to npm
-        run: npm publish
+        if: steps.npm-check.outputs.version_exists == 'false'
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -77,8 +87,6 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
@@ -101,3 +109,4 @@ jobs:
             ```
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false

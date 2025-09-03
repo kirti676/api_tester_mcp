@@ -1,24 +1,24 @@
 # Manual PyPI Publishing Guide
 
-## Check Workflow Status
-1. Visit: https://github.com/kirti676/api_tester_mcp/actions
-2. Look for "Publish Package" workflow runs
+## ✅ PyPI Publishing Status: SUCCESS
+Your package is published at: https://pypi.org/project/api-tester-mcp/
 
-## If Workflow Failed (Missing PyPI Token)
-1. Get PyPI API Token:
-   - Go to: https://pypi.org/manage/account/
-   - Create new API token for "Entire account"
-   - Copy the token (starts with pypi-)
+## 🔧 NPM Publishing Setup (Optional)
 
-2. Add Token to GitHub:
-   - Go to: https://github.com/kirti676/api_tester_mcp/settings/secrets/actions
-   - Click "New repository secret"
-   - Name: PYPI_API_TOKEN
-   - Value: [paste your token]
+### Step 1: Get NPM Token
+1. Go to: https://www.npmjs.com/settings/tokens
+2. Click "Generate New Token" → "Automation"
+3. Copy the token (keep it secret!)
 
-3. Re-trigger Publishing:
-   - Option A: Re-run failed workflow in GitHub Actions
-   - Option B: Create new tag: git tag v1.0.1 && git push origin v1.0.1
+### Step 2: Add Token to GitHub
+1. Go to: https://github.com/kirti676/api_tester_mcp/settings/secrets/actions
+2. Click "New repository secret"
+3. Name: `NPM_TOKEN`
+4. Value: [paste your NPM token]
+
+### Step 3: Re-run or Create New Tag
+- Option A: Re-run failed workflow in GitHub Actions
+- Option B: Create new tag: `git tag v1.0.2 && git push origin v1.0.2`
 
 ## Manual Workflow Trigger
 If you need to trigger manually:
