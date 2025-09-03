@@ -10,6 +10,15 @@ __pycache__/
 .Python
 *.so
 
+# Documentation and demo files
+install.html
+DEPLOYMENT.md
+DEPLOYMENT_READY.md
+DOCUMENTATION.md
+
+# Development scripts
+scripts/generate-install-urls.js
+
 # Test files
 test_*.py
 tests/

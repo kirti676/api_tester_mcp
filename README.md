@@ -16,6 +16,10 @@ The API Tester MCP server can be used directly with npx without any installation
 npx @api-tester/mcp@latest
 ```
 
+**Quick Install:**
+
+[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522api-tester%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522%2540api-tester%252Fmcp%2540latest%2522%255D%257D) [![Install in VS Code Insiders](https://img.shields.io/badge/Install%20in-VS%20Code%20Insiders-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522api-tester%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522%2540api-tester%252Fmcp%2540latest%2522%255D%257D)
+
 ### Claude Desktop
 
 Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user), use the standard config below:
@@ -30,6 +34,29 @@ Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user),
   }
 }
 ```
+
+### Other MCP Clients
+
+The standard configuration works with most MCP clients:
+
+```json
+{
+  "mcpServers": {
+    "api-tester": {
+      "command": "npx",
+      "args": ["@api-tester/mcp@latest"]
+    }
+  }
+}
+```
+
+**Supported Clients:**
+- [Claude Desktop](https://claude.ai/desktop)
+- [VS Code](https://code.visualstudio.com/) with MCP extension
+- [Cursor](https://cursor.sh/)
+- [Windsurf](https://codeium.com/windsurf)
+- [Goose](https://github.com/Codium-ai/goose)
+- Any other MCP-compatible client
 
 ### Python Installation (Alternative)
 
@@ -235,6 +262,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Report bugs: [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
 - Documentation: [GitHub Wiki](https://github.com/kirti676/api_tester_mcp/wiki)
 - Discussions: [GitHub Discussions](https://github.com/kirti676/api_tester_mcp/discussions)
+- Interactive install page: [install.html](install.html)
 
 ## 📈 Roadmap
 
