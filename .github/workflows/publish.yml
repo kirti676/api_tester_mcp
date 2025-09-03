@@ -42,17 +42,29 @@ jobs:
       - name: Check if NPM version exists
         id: npm-check
         run: |
-          if npm view @kirti676/api-tester-mcp@$(node -p "require('./package.json').version") > /dev/null 2>&1; then
+          set +e
+          npm view @kirti676/api-tester-mcp@$(node -p "require('./package.json').version") > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
             echo "version_exists=true" >> $GITHUB_OUTPUT
+            echo "Package version already exists on NPM"
           else
             echo "version_exists=false" >> $GITHUB_OUTPUT
+            echo "Package version does not exist, will publish"
           fi
+          set -e
 
       - name: Publish to npm
         if: steps.npm-check.outputs.version_exists == 'false'
-        run: npm publish --access public
+        run: |
+          echo "Publishing to NPM..."
+          echo "NPM_TOKEN is set: ${{ secrets.NPM_TOKEN != '' }}"
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          
+      - name: Skip NPM publish (version exists)
+        if: steps.npm-check.outputs.version_exists == 'true'
+        run: echo "Skipping NPM publish - version already exists"
 
   publish-pypi:
     runs-on: ubuntu-latest
@@ -73,10 +85,29 @@ jobs:
       - name: Build package
         run: python -m build
 
+      - name: Check if PyPI version exists
+        id: pypi-check
+        run: |
+          set +e
+          pip index versions api-tester-mcp | grep -q "$(python setup.py --version)"
+          if [ $? -eq 0 ]; then
+            echo "version_exists=true" >> $GITHUB_OUTPUT
+            echo "Package version already exists on PyPI"
+          else
+            echo "version_exists=false" >> $GITHUB_OUTPUT
+            echo "Package version does not exist, will publish"
+          fi
+          set -e
+
       - name: Publish to PyPI
+        if: steps.pypi-check.outputs.version_exists == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          
+      - name: Skip PyPI publish (version exists)
+        if: steps.pypi-check.outputs.version_exists == 'true'
+        run: echo "Skipping PyPI publish - version already exists"
 
   create-release:
     runs-on: ubuntu-latest
