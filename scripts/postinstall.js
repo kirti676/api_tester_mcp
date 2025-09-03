@@ -5,6 +5,17 @@ const fs = require('fs');
 // Get the package root directory (one level up from scripts/)
 const packageRoot = path.dirname(__dirname);
 
+// Check if we're in a CI environment where we should skip Python setup
+function isCI() {
+  return !!(
+    process.env.CI ||
+    process.env.GITHUB_ACTIONS ||
+    process.env.CONTINUOUS_INTEGRATION ||
+    process.env.BUILD_NUMBER ||
+    process.env.RUN_ID
+  );
+}
+
 // Check if Python is available
 async function checkPython() {
   const pythonCommands = ['python', 'python3'];
@@ -51,6 +62,13 @@ function installPythonDependencies(pythonCmd) {
 // Main setup function
 async function setup() {
   try {
+    // Skip setup in CI environments (GitHub Actions, etc.)
+    if (isCI()) {
+      console.log('🏗️  Running in CI environment - skipping Python dependency installation');
+      console.log('✅ NPM package ready for publishing');
+      return;
+    }
+    
     console.log('🔧 Setting up API Tester MCP...');
     
     // Check Python availability

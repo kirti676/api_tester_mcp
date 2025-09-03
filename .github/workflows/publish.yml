@@ -36,7 +36,7 @@ jobs:
           pip install build twine
 
       - name: Install Node.js dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Run tests
         run: |
@@ -50,25 +50,26 @@ jobs:
           npm view @kirti676/api-tester-mcp@$(node -p "require('./package.json').version") > /dev/null 2>&1
           if [ $? -eq 0 ]; then
             echo "version_exists=true" >> $GITHUB_OUTPUT
-            echo "Package version already exists on NPM"
+            echo "📦 Package version already exists on NPM"
           else
             echo "version_exists=false" >> $GITHUB_OUTPUT
-            echo "Package version does not exist, will publish"
+            echo "🚀 Package version does not exist, will publish"
           fi
           set -e
 
       - name: Publish to npm
         if: steps.npm-check.outputs.version_exists == 'false'
         run: |
-          echo "Publishing to NPM..."
+          echo "🚀 Publishing to NPM..."
           echo "NPM_TOKEN is set: ${{ secrets.NPM_TOKEN != '' }}"
           npm publish --access public
+          echo "✅ Successfully published to NPM!"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
       - name: Skip NPM publish (version exists)
         if: steps.npm-check.outputs.version_exists == 'true'
-        run: echo "Skipping NPM publish - version already exists"
+        run: echo "⏭️  Skipping NPM publish - version already exists"
 
   publish-pypi:
     runs-on: ubuntu-latest
