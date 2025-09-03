@@ -29,7 +29,8 @@ function installPythonDependencies(pythonCmd) {
   return new Promise((resolve, reject) => {
     console.log('Installing Python dependencies...');
     
-    const child = spawn(pythonCmd, ['-m', 'pip', 'install', '-e', '.'], {
+    // Install just the dependencies, not the package itself to avoid CLI conflicts
+    const child = spawn(pythonCmd, ['-m', 'pip', 'install', '-r', 'requirements.txt'], {
       stdio: 'inherit',
       cwd: packageRoot  // Use package root instead of __dirname
     });

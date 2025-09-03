@@ -2,7 +2,7 @@
   "mcpServers": {
     "api-tester": {
       "command": "npx",
-      "args": ["@api-tester/mcp@latest"]
+      "args": ["@kirti676/api-tester-mcp@latest"]
     }
   }
 }

@@ -8,7 +8,7 @@
 const config = {
     name: "api-tester",
     command: "npx", 
-    args: ["@api-tester/mcp@latest"]
+    args: ["@kirti676/api-tester-mcp@latest"]
 };
 
 const encodedConfig = encodeURIComponent(JSON.stringify(config));

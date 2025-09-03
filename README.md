@@ -1,10 +1,21 @@
 # API Tester MCP Server
 
-[![npm version](https://badge.fury.io/js/@api-tester/mcp.svg)](https://badge.fury.io/js/@api-tester/mcp)
+[![npm version](https://badge.fury.io/js/@kirti676/api-tester-mcp.svg)](https://badge.fury.io/js/@kirti676/api-tester-mcp)
+[![npm downloads](https://img.shields.io/npm/dt/@kirti676/api-tester-mcp.svg)](https://www.npmjs.com/package/@kirti676/api-tester-mcp)
 [![PyPI version](https://badge.fury.io/py/api-tester-mcp.svg)](https://badge.fury.io/py/api-tester-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that provides API testing capabilities with Swagger/OpenAPI and Postman collection support.
+
+> 🎉 **Now available on NPM!** Install with `npx @kirti676/api-tester-mcp@latest`
+
+## 🆕 What's New
+
+- ✅ **Published on NPM** - Install instantly with NPX
+- ✅ **VS Code Integration** - One-click installation buttons  
+- ✅ **Simplified Setup** - No manual Python installation required
+- ✅ **Cross-Platform** - Works on Windows, macOS, and Linux
+- ✅ **Auto-Updates** - Always get the latest version with `@latest`
 
 ## 🚀 Getting Started
 
@@ -13,12 +24,12 @@ A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that p
 The API Tester MCP server can be used directly with npx without any installation:
 
 ```bash
-npx @api-tester/mcp@latest
+npx @kirti676/api-tester-mcp@latest
 ```
 
 **Quick Install:**
 
-[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522api-tester%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522%2540api-tester%252Fmcp%2540latest%2522%255D%257D) [![Install in VS Code Insiders](https://img.shields.io/badge/Install%20in-VS%20Code%20Insiders-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522api-tester%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522%2540api-tester%252Fmcp%2540latest%2522%255D%257D)
+[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22api-tester%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40kirti676%2Fapi-tester-mcp%40latest%22%5D%7D) [![Install in VS Code Insiders](https://img.shields.io/badge/Install%20in-VS%20Code%20Insiders-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%7B%22name%22%3A%22api-tester%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40kirti676%2Fapi-tester-mcp%40latest%22%5D%7D)
 
 ### Claude Desktop
 
@@ -29,7 +40,7 @@ Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user),
   "mcpServers": {
     "api-tester": {
       "command": "npx",
-      "args": ["@api-tester/mcp@latest"]
+      "args": ["@kirti676/api-tester-mcp@latest"]
     }
   }
 }
@@ -44,7 +55,7 @@ The standard configuration works with most MCP clients:
   "mcpServers": {
     "api-tester": {
       "command": "npx",
-      "args": ["@api-tester/mcp@latest"]
+      "args": ["@kirti676/api-tester-mcp@latest"]
     }
   }
 }
@@ -72,13 +83,29 @@ cd api_tester_mcp
 npm install
 ```
 
-Or for Claude Desktop on Windows:
+## ⚡ Quick Start
+
+Try the API Tester MCP server immediately:
+
+```bash
+# Run the server
+npx @kirti676/api-tester-mcp@latest
+
+# Check version
+npx @kirti676/api-tester-mcp@latest --version
+
+# Get help
+npx @kirti676/api-tester-mcp@latest --help
+```
+
+For MCP clients like Claude Desktop, use this configuration:
+
 ```json
 {
   "mcpServers": {
     "api-tester": {
       "command": "npx",
-      "args": ["api-tester-mcp"]
+      "args": ["@kirti676/api-tester-mcp@latest"]
     }
   }
 }
@@ -147,7 +174,45 @@ await mcp.call("run_api_tests", {
 });
 ```
 
-## 📖 Usage Examples
+## � Complete Workflow Example
+
+Here's a complete example of testing the Petstore API:
+
+```bash
+# 1. Start the MCP server
+npx @kirti676/api-tester-mcp@latest
+```
+
+Then in your MCP client (like Claude Desktop):
+
+```javascript
+// 1. Load the Petstore OpenAPI spec
+await mcp.call("ingest_spec", {
+  kind: "openapi", 
+  path_or_text: "https://petstore.swagger.io/v2/swagger.json"
+});
+
+// 2. Set environment variables
+await mcp.call("set_env_vars", {
+  pairs: {
+    "baseUrl": "https://petstore.swagger.io/v2",
+    "auth_apikey": "special-key"
+  }
+});
+
+// 3. Generate test cases
+const tests = await mcp.call("get_generated_tests");
+
+// 4. Run API tests
+const result = await mcp.call("run_api_tests");
+
+// 5. View results in HTML report
+const reports = await mcp.call("list_resources", {
+  uri: "file://reports"
+});
+```
+
+## �📖 Usage Examples
 
 ### Basic API Testing Workflow
 
@@ -242,8 +307,40 @@ Generated reports include:
 - faker>=19.0.0
 
 ### Node.js Dependencies  
-- cross-spawn>=7.0.3
-- which>=4.0.0
+- None (self-contained package)
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**NPX Command Not Working**
+```bash
+# If npx command fails, try:
+npm install -g @kirti676/api-tester-mcp@latest
+
+# Or run directly:
+node ./node_modules/@kirti676/api-tester-mcp/cli.js
+```
+
+**Python Not Found**
+```bash
+# Make sure Python 3.8+ is installed and in PATH
+python --version
+
+# Install Python dependencies manually if needed:
+pip install fastmcp>=0.2.0 pydantic>=2.0.0 requests>=2.28.0
+```
+
+**MCP Client Connection Issues**
+- Ensure the MCP server is running on stdio transport (default)
+- Check that your MCP client supports the latest MCP protocol version
+- Verify the configuration JSON syntax is correct
+
+### Getting Help
+
+1. Check the [Examples](examples/) directory for working configurations
+2. Run with `--verbose` flag for detailed logging
+3. Report issues on [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
 
 ## 🤝 Contributing
 
@@ -259,6 +356,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🐛 Issues & Support
 
+- **NPM Package**: [@kirti676/api-tester-mcp](https://www.npmjs.com/package/@kirti676/api-tester-mcp)
 - Report bugs: [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
 - Documentation: [GitHub Wiki](https://github.com/kirti676/api_tester_mcp/wiki)
 - Discussions: [GitHub Discussions](https://github.com/kirti676/api_tester_mcp/discussions)

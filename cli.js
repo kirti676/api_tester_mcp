@@ -14,7 +14,7 @@ function showHelp() {
 API Tester MCP Server v${require('./package.json').version}
 
 USAGE:
-  npx @api-tester/mcp [options]
+  npx @kirti676/api-tester-mcp [options]
   api-tester-mcp [options]
 
 OPTIONS:
@@ -27,13 +27,13 @@ OPTIONS:
 
 EXAMPLES:
   # Run via npx (recommended)
-  npx @api-tester/mcp
+  npx @kirti676/api-tester-mcp
 
   # Run with custom config
-  npx @api-tester/mcp --config ./api-config.json
+  npx @kirti676/api-tester-mcp --config ./api-config.json
 
   # Run on specific port
-  npx @api-tester/mcp --port 3000
+  npx @kirti676/api-tester-mcp --port 3000
 
 For more information, visit: https://github.com/kirti676/api_tester_mcp
 `);

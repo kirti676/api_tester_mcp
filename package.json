@@ -1,11 +1,9 @@
 {
-  "name": "@api-tester/mcp",
-  "version": "1.0.0",
+  "name": "@kirti676/api-tester-mcp",
+  "version": "1.0.3",
   "description": "MCP server for API testing with Swagger/OpenAPI and Postman collection support",
   "main": "cli.js",
-  "bin": {
-    "api-tester-mcp": "./cli.js"
-  },
+  "bin": "./cli.js",
   "scripts": {
     "start": "node cli.js",
     "build": "echo 'No build needed'",
@@ -44,7 +42,7 @@
   ],
   "files": [
     "cli.js",
-    "scripts/",
+    "scripts/postinstall.js",
     "api_tester_mcp/",
     "examples/",
     "README.md",
