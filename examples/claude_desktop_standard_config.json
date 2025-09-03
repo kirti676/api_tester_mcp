@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "api-tester": {
-      "command": "npx",
-      "args": ["@kirti676/api-tester-mcp@latest"]
-    }
-  }
-}

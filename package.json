@@ -52,7 +52,5 @@
     "run.py"
   ],
   "dependencies": {},
-  "devDependencies": {
-    "jest": "^29.0.0"
-  }
+  "devDependencies": {}
 }

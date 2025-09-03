@@ -3,7 +3,6 @@
 from typing import Dict, List, Optional, Any, Union
 from pydantic import BaseModel, Field
 from enum import Enum
-import json
 
 
 class SpecType(str, Enum):
