@@ -1,0 +1,63 @@
+{
+  "name": "api-tester-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for API testing with Swagger/OpenAPI and Postman collection support",
+  "main": "index.js",
+  "bin": {
+    "api-tester-mcp": "./bin/api-tester-mcp.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "install": "npm run setup:python",
+    "setup:python": "python -m pip install -e .",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "keywords": [
+    "mcp",
+    "api-testing",
+    "swagger",
+    "openapi",
+    "postman",
+    "qa",
+    "sdet",
+    "testing",
+    "model-context-protocol"
+  ],
+  "author": "API Tester MCP <api-tester@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kirti676/api_tester_mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kirti676/api_tester_mcp/issues"
+  },
+  "homepage": "https://github.com/kirti676/api_tester_mcp#readme",
+  "engines": {
+    "node": ">=14.0.0",
+    "python": ">=3.8.0"
+  },
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ],
+  "files": [
+    "bin/",
+    "scripts/",
+    "api_tester_mcp/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "requirements.txt",
+    "index.js"
+  ],
+  "dependencies": {
+    "which": "^4.0.0",
+    "cross-spawn": "^7.0.3"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

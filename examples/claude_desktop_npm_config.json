@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "api-tester": {
+      "command": "npx",
+      "args": ["api-tester-mcp"],
+      "description": "API testing server with Swagger/Postman support"
+    }
+  }
+}

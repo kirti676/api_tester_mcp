@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "api-tester": {
+      "command": "python",
+      "args": ["-m", "api_tester_mcp.server"],
+      "env": {
+        "PYTHONPATH": "c:\\api_tester_mcp"
+      }
+    }
+  }
+}
