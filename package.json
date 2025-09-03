@@ -1,6 +1,6 @@
 {
   "name": "@kirti676/api-tester-mcp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "MCP server for API testing with Swagger/OpenAPI and Postman collection support",
   "main": "cli.js",
   "bin": "./cli.js",
