@@ -788,8 +788,6 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="API Tester MCP Server")
-    parser.add_argument("--host", default="localhost", help="Host to bind to")
-    parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
     parser.add_argument("--log-level", default="INFO", help="Log level")
     
     args = parser.parse_args()
@@ -798,10 +796,10 @@ def main():
     import logging
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
     
-    logger.info(f"Starting API Tester MCP Server on {args.host}:{args.port}")
+    logger.info("Starting API Tester MCP Server")
     
-    # Run the server
-    mcp.run(host=args.host, port=args.port)
+    # Run the server (FastMCP uses stdio transport by default for MCP)
+    mcp.run()
 
 
 if __name__ == "__main__":

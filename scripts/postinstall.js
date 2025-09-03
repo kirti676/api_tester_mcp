@@ -1,5 +1,4 @@
-const { spawn } = require('cross-spawn');
-const which = require('which');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,17 +7,21 @@ const packageRoot = path.dirname(__dirname);
 
 // Check if Python is available
 async function checkPython() {
-  try {
-    await which('python');
-    return 'python';
-  } catch (err) {
+  const pythonCommands = ['python', 'python3'];
+  
+  for (const cmd of pythonCommands) {
     try {
-      await which('python3');
-      return 'python3';
+      const result = await new Promise((resolve) => {
+        const child = spawn(cmd, ['--version'], { stdio: 'pipe' });
+        child.on('close', (code) => resolve(code === 0 ? cmd : null));
+        child.on('error', () => resolve(null));
+      });
+      if (result) return result;
     } catch (err) {
-      return null;
+      continue;
     }
   }
+  return null;
 }
 
 // Install Python dependencies
@@ -52,9 +55,10 @@ async function setup() {
     // Check Python availability
     const pythonCmd = await checkPython();
     if (!pythonCmd) {
-      console.error('❌ Python 3.8+ is required but not found in PATH');
-      console.error('Please install Python and try again.');
-      process.exit(1);
+      console.log('⚠️  Python 3.8+ not found in PATH');
+      console.log('Python dependencies will be installed when needed.');
+      console.log('✓ Setup completed (Python will be checked at runtime)');
+      return;
     }
     
     console.log(`✅ Found Python: ${pythonCmd}`);

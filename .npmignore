@@ -1,0 +1,54 @@
+# Development files
+.git/
+.github/
+.vscode/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Test files
+test_*.py
+tests/
+*_test.py
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+lib/
+node_modules/
+
+# Documentation (keep README.md)
+docs/
+*.md
+!README.md
+
+# Configuration files
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

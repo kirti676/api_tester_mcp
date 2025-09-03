@@ -1,24 +1,37 @@
 # API Tester MCP Server
 
-[![npm version](https://badge.fury.io/js/api-tester-mcp.svg)](https://badge.fury.io/js/api-tester-mcp)
+[![npm version](https://badge.fury.io/js/@api-tester/mcp.svg)](https://badge.fury.io/js/@api-tester/mcp)
 [![PyPI version](https://badge.fury.io/py/api-tester-mcp.svg)](https://badge.fury.io/py/api-tester-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that provides API testing capabilities with Swagger/OpenAPI and Postman collection support.
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-### npm Installation (Recommended)
+### Installation
+
+The API Tester MCP server can be used directly with npx without any installation:
 
 ```bash
-# Install globally
-npm install -g api-tester-mcp
-
-# Or use directly with npx
-npx api-tester-mcp --setup
+npx @api-tester/mcp@latest
 ```
 
-### pip Installation
+### Claude Desktop
+
+Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user), use the standard config below:
+
+```json
+{
+  "mcpServers": {
+    "api-tester": {
+      "command": "npx",
+      "args": ["@api-tester/mcp@latest"]
+    }
+  }
+}
+```
+
+### Python Installation (Alternative)
 
 ```bash
 pip install api-tester-mcp
@@ -30,23 +43,6 @@ pip install api-tester-mcp
 git clone https://github.com/kirti676/api_tester_mcp.git
 cd api_tester_mcp
 npm install
-# or
-pip install -e .
-```
-
-## 📋 MCP Client Configuration
-
-Add this to your MCP client configuration (e.g., Claude Desktop):
-
-```json
-{
-  "mcpServers": {
-    "api-tester": {
-      "command": "api-tester-mcp",
-      "args": ["--host", "localhost", "--port", "8000"]
-    }
-  }
-}
 ```
 
 Or for Claude Desktop on Windows:

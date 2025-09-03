@@ -12,7 +12,7 @@ authors = [
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
-keywords = ["mcp", "api-testing", "swagger", "openapi", "postman", "qa", "sdet", "testing"]
+keywords = ["mcp", "api-testing", "swagger", "openapi", "postman", "qa", "sdet", "testing", "model-context-protocol"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Testing",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Quality Assurance",
@@ -50,6 +51,7 @@ dev = [
 
 [project.scripts]
 api-tester-mcp = "api_tester_mcp.server:main"
+api-tester-mcp-server = "api_tester_mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/kirti676/api_tester_mcp"
