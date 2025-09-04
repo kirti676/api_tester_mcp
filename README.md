@@ -11,6 +11,9 @@ A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that p
 
 ## 🆕 What's New
 
+- ✅ **Enhanced Progress Tracking** - Real-time progress with completion percentages and ETA
+- ✅ **Visual Progress Bars** - ASCII progress bars with milestone notifications
+- ✅ **Performance Metrics** - Throughput calculations and execution summaries
 - ✅ **Published on NPM** - Install instantly with NPX
 - ✅ **VS Code Integration** - One-click installation buttons  
 - ✅ **Simplified Setup** - No manual Python installation required
@@ -116,23 +119,52 @@ For MCP clients like Claude Desktop, use this configuration:
 - **📥 Input Support**: Swagger/OpenAPI documents and Postman collections
 - **🔄 Test Generation**: Automatic API and Load test scenario generation
 - **⚡ Test Execution**: Run generated tests with detailed reporting
+- **🔐 Smart Auth Detection**: Automatic environment variable analysis and setup guidance
 - **🔐 Authentication**: Bearer token and API key support via `set_env_vars`
 - **📊 HTML Reports**: Beautiful, accessible reports via MCP resources
-- **📈 Real-time Progress**: Live updates during test execution
+- **📈 Real-time Progress**: Live updates with progress bars and completion percentages
+- **⏱️ ETA Calculations**: Estimated time to completion for all operations
+- **🎯 Milestone Tracking**: Special notifications at key progress milestones (25%, 50%, 75%, etc.)
+- **📊 Performance Metrics**: Throughput calculations and execution summaries
 - **✅ Schema Validation**: Request body generation from schema examples
 - **🎯 Assertions**: Per-endpoint status code assertions (2xx, 4xx, 5xx)
 
+## 📈 Progress Tracking
+
+The API Tester MCP includes comprehensive progress tracking for all operations:
+
+### Visual Progress Indicators
+```
+🎯 API Test Execution: [██████████░░░░░░░░░░] 50.0% (5/10) | ETA: 2.5s - GET /api/users ✅
+```
+
+### Features:
+- **Progress Bars**: ASCII progress bars with filled/empty indicators
+- **Completion Percentages**: Real-time percentage completion
+- **ETA Calculations**: Estimated time to completion based on current performance
+- **Milestone Notifications**: Special highlighting at key progress points
+- **Performance Metrics**: Throughput and timing statistics
+- **Operation Context**: Detailed information about current step being executed
+
+### Available for:
+- Scenario generation
+- Test case generation  
+- API test execution
+- Load test execution
+- All long-running operations
+
 ## 🛠️ MCP Tools
 
-The server provides 7 comprehensive MCP tools:
+The server provides 8 comprehensive MCP tools:
 
-1. **`ingest_spec`** - Load Swagger/OpenAPI or Postman collections
-2. **`set_env_vars`** - Configure authentication and environment variables
-3. **`generate_scenarios`** - Create test scenarios from specifications
-4. **`generate_test_cases`** - Convert scenarios to executable test cases
-5. **`run_api_tests`** - Execute API tests with detailed results
-6. **`run_load_tests`** - Execute performance/load tests
-7. **`get_session_status`** - Retrieve current session information
+1. **`ingest_spec`** - Load Swagger/OpenAPI or Postman collections with automatic environment variable analysis
+2. **`get_env_var_suggestions`** - Get detailed environment variable setup guidance (NEW!)
+3. **`set_env_vars`** - Configure authentication and environment variables
+4. **`generate_scenarios`** - Create test scenarios from specifications
+5. **`generate_test_cases`** - Convert scenarios to executable test cases
+6. **`run_api_tests`** - Execute API tests with detailed results
+7. **`run_load_tests`** - Execute performance/load tests
+8. **`get_session_status`** - Retrieve current session information
 
 ## 📚 MCP Resources
 
@@ -144,9 +176,40 @@ The server provides 7 comprehensive MCP tools:
 - **`create_api_test_plan`** - Generate comprehensive API test plans
 - **`analyze_test_failures`** - Analyze test failures and provide recommendations
 
-## 🔧 Configuration Example
+## � Smart Environment Variable Analysis
+
+The API Tester MCP now automatically analyzes your API specifications to detect required environment variables and provides helpful setup guidance:
+
+### Automatic Detection
+- **Authentication Schemes**: Bearer tokens, API keys, Basic auth, OAuth2
+- **Base URLs**: Extracted from specification servers/hosts
+- **Template Variables**: Postman collection variables like `{{baseUrl}}`, `{{authToken}}`
+- **Path Parameters**: Dynamic values in paths like `/users/{userId}`
+
+### Smart Suggestions
+```javascript
+// 1. Ingest specification - automatic analysis included
+const result = await mcp.call("ingest_spec", {
+  spec_type: "openapi",
+  content: openapi_json_string
+});
+
+// Check the setup message for immediate guidance
+console.log(result.setup_message);
+// "⚠️ 2 required environment variable(s) detected..."
+
+// 2. Get detailed setup instructions
+const suggestions = await mcp.call("get_env_var_suggestions");
+console.log(suggestions.setup_instructions);
+// Provides copy-paste ready configuration examples
+```
+
+## �🔧 Configuration Example
 
 ```javascript
+// NEW: Get smart suggestions first
+const suggestions = await mcp.call("get_env_var_suggestions");
+
 // Set environment variables for authentication
 await mcp.call("set_env_vars", {
   variables: {
@@ -156,7 +219,7 @@ await mcp.call("set_env_vars", {
   }
 });
 
-// Ingest an OpenAPI specification
+// Ingest an OpenAPI specification (now with automatic env var analysis)
 await mcp.call("ingest_spec", {
   spec_type: "openapi",
   content: openapi_json_string
@@ -339,8 +402,9 @@ pip install fastmcp>=0.2.0 pydantic>=2.0.0 requests>=2.28.0
 ### Getting Help
 
 1. Check the [Examples](examples/) directory for working configurations
-2. Run with `--verbose` flag for detailed logging
-3. Report issues on [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
+2. See [PROGRESS_TRACKING.md](PROGRESS_TRACKING.md) for detailed progress tracking documentation
+3. Run with `--verbose` flag for detailed logging
+4. Report issues on [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
 
 ## 🤝 Contributing
 

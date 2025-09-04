@@ -3,7 +3,7 @@
 import uuid
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from faker import Faker
 import re
 
@@ -208,37 +208,135 @@ def truncate_text(text: str, max_length: int = 100) -> str:
 
 
 class ProgressTracker:
-    """Track progress of long-running operations"""
+    """Track progress of long-running operations with detailed notifications"""
     
-    def __init__(self, total_steps: int, operation_name: str = "Operation"):
+    def __init__(self, total_steps: int, operation_name: str = "Operation", enable_detailed_logging: bool = True):
         self.total_steps = total_steps
         self.current_step = 0
         self.operation_name = operation_name
         self.start_time = None
+        self.enable_detailed_logging = enable_detailed_logging
+        self.step_history = []
+        self.milestones = [10, 25, 50, 75, 90, 95]  # Percentage milestones to highlight
+        self.milestone_reached = set()
         
     def start(self):
         """Start tracking progress"""
         import time
         self.start_time = time.time()
-        logger.info(f"Starting {self.operation_name} with {self.total_steps} steps")
+        if self.enable_detailed_logging:
+            logger.info(f"🚀 Starting {self.operation_name}")
+            logger.info(f"📊 Total steps: {self.total_steps}")
+            logger.info(f"⏱️  Started at: {time.strftime('%H:%M:%S', time.localtime(self.start_time))}")
     
-    def update(self, step_name: str = None):
-        """Update progress"""
+    def update(self, step_name: str = None, force_log: bool = False):
+        """Update progress with detailed notifications"""
+        import time
         self.current_step += 1
         percentage = (self.current_step / self.total_steps) * 100
         
-        message = f"{self.operation_name}: {self.current_step}/{self.total_steps} ({percentage:.1f}%)"
-        if step_name:
-            message += f" - {step_name}"
+        # Record step history
+        step_info = {
+            "step": self.current_step,
+            "percentage": percentage,
+            "step_name": step_name,
+            "timestamp": time.time()
+        }
+        self.step_history.append(step_info)
         
-        logger.info(message)
+        # Check for milestones
+        milestone_hit = None
+        for milestone in self.milestones:
+            if percentage >= milestone and milestone not in self.milestone_reached:
+                self.milestone_reached.add(milestone)
+                milestone_hit = milestone
+                break
+        
+        # Calculate ETA
+        eta_str = ""
+        if self.start_time and self.current_step > 0:
+            elapsed = time.time() - self.start_time
+            estimated_total = (elapsed / self.current_step) * self.total_steps
+            remaining = estimated_total - elapsed
+            if remaining > 0:
+                eta_str = f" | ETA: {format_duration(remaining)}"
+        
+        # Create progress bar
+        bar_length = 20
+        filled_length = int(bar_length * percentage / 100)
+        bar = "█" * filled_length + "░" * (bar_length - filled_length)
+        
+        # Build message with enhanced formatting
+        if milestone_hit:
+            # Special formatting for milestones
+            message = f"🎯 {self.operation_name}: [{bar}] {percentage:.1f}% ({self.current_step}/{self.total_steps}){eta_str}"
+            if step_name:
+                message += f" - {step_name}"
+            logger.info(message)
+        elif force_log or self.enable_detailed_logging and (self.current_step % max(1, self.total_steps // 10) == 0):
+            # Log every 10% or when forced
+            message = f"⚡ {self.operation_name}: [{bar}] {percentage:.1f}% ({self.current_step}/{self.total_steps}){eta_str}"
+            if step_name:
+                message += f" - {step_name}"
+            logger.info(message)
+    
+    def update_with_substep(self, step_name: str, substep: int, total_substeps: int):
+        """Update progress with substep information"""
+        substep_percentage = (substep / total_substeps) * 100 if total_substeps > 0 else 100
+        full_step_name = f"{step_name} ({substep}/{total_substeps} - {substep_percentage:.1f}%)"
+        self.update(full_step_name)
+    
+    def get_progress_info(self) -> Dict[str, Any]:
+        """Get current progress information"""
+        import time
+        percentage = (self.current_step / self.total_steps) * 100
+        
+        info = {
+            "operation_name": self.operation_name,
+            "current_step": self.current_step,
+            "total_steps": self.total_steps,
+            "percentage": round(percentage, 2),
+            "is_complete": self.current_step >= self.total_steps
+        }
+        
+        if self.start_time:
+            elapsed = time.time() - self.start_time
+            info["elapsed_time"] = elapsed
+            info["elapsed_formatted"] = format_duration(elapsed)
+            
+            if self.current_step > 0:
+                estimated_total = (elapsed / self.current_step) * self.total_steps
+                remaining = max(0, estimated_total - elapsed)
+                info["estimated_remaining"] = remaining
+                info["eta_formatted"] = format_duration(remaining)
+                info["estimated_completion"] = time.time() + remaining
+        
+        return info
     
     def finish(self):
-        """Finish tracking"""
+        """Finish tracking with comprehensive summary"""
         if self.start_time:
             import time
             duration = time.time() - self.start_time
-            logger.info(f"{self.operation_name} completed in {format_duration(duration)}")
+            
+            # Calculate performance metrics
+            avg_time_per_step = duration / self.total_steps if self.total_steps > 0 else 0
+            steps_per_second = self.total_steps / duration if duration > 0 else 0
+            
+            logger.info(f"✅ {self.operation_name} completed successfully!")
+            logger.info(f"📈 Summary:")
+            logger.info(f"   • Total steps: {self.total_steps}")
+            logger.info(f"   • Duration: {format_duration(duration)}")
+            logger.info(f"   • Average time per step: {avg_time_per_step:.3f}s")
+            logger.info(f"   • Steps per second: {steps_per_second:.2f}")
+            
+            if len(self.step_history) > 1:
+                # Calculate throughput over time
+                recent_steps = self.step_history[-min(10, len(self.step_history)):]
+                if len(recent_steps) > 1:
+                    recent_duration = recent_steps[-1]["timestamp"] - recent_steps[0]["timestamp"]
+                    recent_throughput = len(recent_steps) / recent_duration if recent_duration > 0 else 0
+                    logger.info(f"   • Recent throughput: {recent_throughput:.2f} steps/sec")
 
 
 def merge_env_vars(base_vars: Dict[str, str], new_vars: Dict[str, str]) -> Dict[str, str]:

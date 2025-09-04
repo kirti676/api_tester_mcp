@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import yaml
 import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
@@ -15,7 +16,7 @@ from .models import (
     SpecType, TestSession, TestScenario, TestCase, TestResult,
     StatusType
 )
-from .parsers import SpecificationParser, ScenarioGenerator
+from .parsers import SpecificationParser, ScenarioGenerator, analyze_required_env_vars
 from .test_execution import TestCaseGenerator, TestExecutor, LoadTestExecutor
 from .reports import ReportGenerator
 from .utils import (
@@ -74,13 +75,14 @@ class RunLoadTestsParams(BaseModel):
 async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
     """
     Ingest an API specification (OpenAPI/Swagger or Postman collection).
+    Automatically analyzes the specification and suggests required environment variables.
     
     Args:
         spec_type: Type of specification ('openapi', 'swagger', or 'postman')
         content: The specification content as JSON or YAML string
     
     Returns:
-        Dictionary with ingestion results and session information
+        Dictionary with ingestion results, session information, and environment variable analysis
     """
     global current_session
     
@@ -108,16 +110,34 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
                 "error": "No API endpoints found in the specification"
             }
         
+        # Analyze required environment variables
+        spec_data = json.loads(params.content) if params.content.strip().startswith('{') else yaml.safe_load(params.content)
+        env_analysis = analyze_required_env_vars(spec_data, spec_type, parser.base_url)
+        
         # Create new session
         session_id = generate_id()
         current_session = TestSession(
             id=session_id,
             spec_type=spec_type,
-            spec_content=json.loads(params.content) if params.content.strip().startswith('{') else params.content,
+            spec_content=spec_data,
             created_at=datetime.now().isoformat()
         )
         
         logger.info(f"Created new session {session_id} with {len(endpoints)} endpoints")
+        
+        # Generate helpful message about environment variables
+        env_message = []
+        required_vars = env_analysis.get("required_variables", {})
+        if required_vars:
+            env_message.append(f"⚠️  {len(required_vars)} required environment variable(s) detected:")
+            for var_name, var_info in required_vars.items():
+                if "detected_value" in var_info:
+                    env_message.append(f"   • {var_name}: {var_info['description']} (Suggested: {var_info['detected_value']})")
+                else:
+                    env_message.append(f"   • {var_name}: {var_info['description']}")
+            env_message.append("💡 Use get_env_var_suggestions() for detailed setup instructions.")
+        else:
+            env_message.append("✅ No authentication or environment variables required.")
         
         return {
             "success": True,
@@ -133,7 +153,9 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
                 }
                 for ep in endpoints
             ],
-            "base_url": parser.base_url
+            "base_url": parser.base_url,
+            "environment_analysis": env_analysis,
+            "setup_message": "\n".join(env_message)
         }
         
     except Exception as e:
@@ -567,32 +589,164 @@ async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_session_status() -> Dict[str, Any]:
+async def get_env_var_suggestions() -> Dict[str, Any]:
     """
-    Get current session status and information.
+    Get environment variable suggestions based on the ingested API specification.
     
     Returns:
-        Dictionary with current session information
+        Dictionary with suggested environment variables and their descriptions
     """
     global current_session
     
     if not current_session:
         return {
-            "session_active": False,
-            "message": "No active session"
+            "success": False,
+            "error": "No active session. Please ingest a specification first."
         }
     
-    return {
-        "session_active": True,
+    try:
+        # Re-analyze the specification for environment variables
+        env_analysis = analyze_required_env_vars(
+            current_session.spec_content, 
+            current_session.spec_type,
+            ""  # base_url will be extracted from spec_content
+        )
+        
+        # Check which variables are already set
+        current_vars = current_session.env_vars
+        suggestions = {}
+        
+        # Process required variables
+        for var_name, var_info in env_analysis.get("required_variables", {}).items():
+            is_set = var_name in current_vars
+            suggestions[var_name] = {
+                **var_info,
+                "currently_set": is_set,
+                "current_value": "***" if is_set and ("auth" in var_name.lower() or "secret" in var_name.lower() or "password" in var_name.lower()) else current_vars.get(var_name, None),
+                "priority": "required"
+            }
+        
+        # Process optional variables
+        for var_name, var_info in env_analysis.get("optional_variables", {}).items():
+            is_set = var_name in current_vars
+            suggestions[var_name] = {
+                **var_info,
+                "currently_set": is_set,
+                "current_value": "***" if is_set and ("auth" in var_name.lower() or "secret" in var_name.lower() or "password" in var_name.lower()) else current_vars.get(var_name, None),
+                "priority": "optional"
+            }
+        
+        # Generate setup instructions
+        missing_required = [var for var, info in suggestions.items() if info["priority"] == "required" and not info["currently_set"]]
+        setup_instructions = []
+        
+        if missing_required:
+            setup_instructions.append("⚠️  Required environment variables missing:")
+            for var in missing_required:
+                var_info = suggestions[var]
+                if "detected_value" in var_info:
+                    setup_instructions.append(f"   • {var}: {var_info['description']} (Suggested: {var_info['detected_value']})")
+                else:
+                    setup_instructions.append(f"   • {var}: {var_info['description']}")
+            
+            setup_instructions.append("\n💡 Use the set_env_vars tool to configure these variables:")
+            example_vars = {}
+            for var in missing_required:
+                if "detected_value" in suggestions[var]:
+                    example_vars[var] = suggestions[var]["detected_value"]
+                elif var == "auth_bearer":
+                    example_vars[var] = "your-bearer-token"
+                elif var == "auth_apikey":
+                    example_vars[var] = "your-api-key"
+                elif var == "auth_basic":
+                    example_vars[var] = "base64-encoded-credentials"
+                else:
+                    example_vars[var] = "your-value"
+            
+            setup_instructions.append(f"   await set_env_vars({json.dumps({'variables': example_vars}, indent=2)})")
+        else:
+            setup_instructions.append("✅ All required environment variables are configured!")
+        
+        return {
+            "success": True,
+            "session_id": current_session.id,
+            "suggested_variables": suggestions,
+            "required_missing_count": len(missing_required),
+            "total_suggestions": len(suggestions),
+            "setup_instructions": setup_instructions,
+            **env_analysis  # Include the original analysis
+        }
+        
+    except Exception as e:
+        error_details = extract_error_details(e)
+        logger.error(f"Failed to get environment variable suggestions: {error_details}")
+        return {
+            "success": False,
+            "error": f"Failed to analyze environment variables: {error_details['message']}"
+        }
+
+
+@mcp.tool()
+async def get_session_status() -> Dict[str, Any]:
+    """
+    Get current session status and information with progress details.
+    
+    Returns:
+        Dictionary with current session information including progress
+    """
+    global current_session
+    
+    if not current_session:
+        return {
+            "success": False,
+            "error": "No active session"
+        }
+    
+    # Get basic session info
+    session_info = {
+        "success": True,
         "session_id": current_session.id,
-        "spec_type": current_session.spec_type.value,
         "status": current_session.status.value,
+        "spec_type": current_session.spec_type.value,
         "created_at": current_session.created_at,
         "completed_at": current_session.completed_at,
+        "endpoints_count": len(current_session.spec_content.get("paths", {})),
         "scenarios_count": len(current_session.scenarios),
         "test_cases_count": len(current_session.test_cases),
-        "env_vars_count": len(current_session.env_vars),
-        "base_url": current_session.env_vars.get("baseUrl", "")
+        "env_vars": current_session.env_vars
+    }
+    
+    # Add progress information if there's an active operation
+    # This would be enhanced with a global progress tracker for the current operation
+    if hasattr(current_session, 'current_operation_progress'):
+        session_info["current_operation"] = current_session.current_operation_progress
+    
+    return session_info
+
+
+@mcp.tool()
+async def get_operation_progress() -> Dict[str, Any]:
+    """
+    Get detailed progress information for the current operation.
+    
+    Returns:
+        Dictionary with detailed progress information
+    """
+    global current_session
+    
+    if not current_session:
+        return {
+            "success": False,
+            "error": "No active session"
+        }
+    
+    # This would be enhanced with actual progress tracking
+    # For now, return basic status
+    return {
+        "success": True,
+        "session_id": current_session.id,
+        "status": current_session.status.value,
+        "message": "Progress tracking will be available during test execution"
     }
 
 
