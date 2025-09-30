@@ -42,6 +42,8 @@ For more information, visit: https://github.com/kirti676/api_tester_mcp
 function showVersion() {
   const pkg = require('./package.json');
   console.log(`${pkg.name} v${pkg.version}`);
+  console.log(`Multi-language MCP server for API testing`);
+  console.log(`Supports: TypeScript/Playwright, JavaScript/Jest, Python/pytest`);
 }
 
 async function checkPythonInstallation() {
