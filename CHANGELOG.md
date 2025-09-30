@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2025-09-30
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.2.1] - 2024-12-09
+
+### Removed
+- Redundant documentation files (PUBLISHING.md, IMPLEMENTATION_SUMMARY.md, RELEASE_SUMMARY.md, PUBLISHING_GUIDE.md)
+- Demo and test files not needed for production (demo_env_workflow.py, test_core.py, run.py)
+- Empty output/ directory
+
+### Fixed
+- Jinja2 template syntax for Python docstrings in code generators
+- Removed unused logger import from code_generators.py
+
+### Enhanced
+- CLI version display now shows multi-language support information
+- Repository structure optimized for production distribution and maintainability
+
+## [1.2.0] - 2024-12-09
 
 ### 🚀 Major Feature: Multi-Language Test Generation
 

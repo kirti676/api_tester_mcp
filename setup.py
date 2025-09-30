@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="api-tester-mcp",
-    version="1.2.0",
+    version="1.2.1",
     author="API Tester MCP",
     author_email="api-tester@example.com",
     description="Multi-language MCP server for API testing with TypeScript/Playwright, JavaScript/Jest, Python/pytest support",
