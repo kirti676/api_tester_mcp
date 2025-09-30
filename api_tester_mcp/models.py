@@ -20,6 +20,26 @@ class StatusType(str, Enum):
     FAILED = "failed"
 
 
+class TestLanguage(str, Enum):
+    """Supported test languages"""
+    PYTHON = "python"
+    TYPESCRIPT = "typescript"
+    JAVASCRIPT = "javascript"
+
+
+class TestFramework(str, Enum):
+    """Supported test frameworks"""
+    # Python frameworks
+    PYTEST = "pytest"
+    REQUESTS = "requests"
+    
+    # TypeScript/JavaScript frameworks
+    PLAYWRIGHT = "playwright"
+    JEST = "jest"
+    SUPERTEST = "supertest"
+    CYPRESS = "cypress"
+
+
 class ApiEndpoint(BaseModel):
     """API endpoint representation"""
     path: str
@@ -59,6 +79,9 @@ class TestCase(BaseModel):
     expected_status: int = 200
     assertions: List[Dict[str, Any]] = Field(default_factory=list)
     timeout: int = 30
+    language: TestLanguage = TestLanguage.PYTHON
+    framework: TestFramework = TestFramework.REQUESTS
+    generated_code: Optional[str] = None  # Generated test code in selected language/framework
 
 
 class TestResult(BaseModel):
@@ -86,3 +109,5 @@ class TestSession(BaseModel):
     status: StatusType = StatusType.PENDING
     created_at: str
     completed_at: Optional[str] = None
+    preferred_language: TestLanguage = TestLanguage.PYTHON
+    preferred_framework: TestFramework = TestFramework.REQUESTS

@@ -1,7 +1,7 @@
 {
   "name": "@kirti676/api-tester-mcp",
-  "version": "1.1.0",
-  "description": "MCP server for API testing with Swagger/OpenAPI and Postman collection support",
+  "version": "1.2.0",
+  "description": "Multi-language MCP server for API testing with TypeScript/Playwright, JavaScript/Jest, Python/pytest support",
   "main": "cli.js",
   "bin": "./cli.js",
   "scripts": {
@@ -19,7 +19,13 @@
     "qa",
     "sdet",
     "testing",
-    "model-context-protocol"
+    "model-context-protocol",
+    "typescript",
+    "playwright",
+    "jest",
+    "pytest",
+    "multi-language",
+    "test-generation"
   ],
   "author": "API Tester MCP <api-tester@example.com>",
   "license": "MIT",

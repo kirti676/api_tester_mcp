@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="api-tester-mcp",
-    version="1.1.0",
+    version="1.2.0",
     author="API Tester MCP",
     author_email="api-tester@example.com",
-    description="MCP server for API testing with Swagger/OpenAPI and Postman collection support",
+    description="Multi-language MCP server for API testing with TypeScript/Playwright, JavaScript/Jest, Python/pytest support",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
@@ -58,7 +58,7 @@ setup(
             "api-tester-mcp-server=api_tester_mcp.server:main",
         ],
     },
-    keywords="mcp api-testing swagger openapi postman qa sdet testing model-context-protocol",
+    keywords="mcp api-testing swagger openapi postman qa sdet testing model-context-protocol typescript playwright jest pytest multi-language test-generation",
     include_package_data=True,
     package_data={
         "api_tester_mcp": ["*.py"],

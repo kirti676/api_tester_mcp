@@ -5,17 +5,23 @@ import aiohttp
 import json
 import time
 from typing import Dict, List, Any, Optional
-from .models import TestCase, TestScenario, TestResult, ApiEndpoint
+from .models import TestCase, TestScenario, TestResult, ApiEndpoint, TestLanguage, TestFramework
 from .utils import generate_id, logger, generate_test_data, ProgressTracker
+from .code_generators import CodeGenerator
 import re
 
 
 class TestCaseGenerator:
     """Generate executable test cases from scenarios"""
     
-    def __init__(self, base_url: str = "", env_vars: Dict[str, str] = None):
+    def __init__(self, base_url: str = "", env_vars: Dict[str, str] = None, 
+                 language: TestLanguage = TestLanguage.PYTHON, 
+                 framework: TestFramework = TestFramework.REQUESTS):
         self.base_url = base_url
         self.env_vars = env_vars or {}
+        self.language = language
+        self.framework = framework
+        self.code_generator = CodeGenerator(language, framework)
     
     def generate_test_cases(self, scenarios: List[TestScenario]) -> List[TestCase]:
         """Generate test cases from scenarios"""
@@ -43,7 +49,7 @@ class TestCaseGenerator:
         # Determine expected status
         expected_status = self._get_expected_status(scenario)
         
-        return TestCase(
+        test_case = TestCase(
             id=generate_id(),
             scenario_id=scenario.id,
             name=scenario.name,
@@ -52,8 +58,20 @@ class TestCaseGenerator:
             headers=headers,
             body=body,
             expected_status=expected_status,
-            assertions=scenario.assertions
+            assertions=scenario.assertions,
+            language=self.language,
+            framework=self.framework
         )
+        
+        # Generate code for this test case
+        session_info = {
+            'id': 'current_session',
+            'base_url': self.base_url,
+            'auth_token': self.env_vars.get('auth_bearer', ''),
+        }
+        test_case.generated_code = self.code_generator.generate_test_code([test_case], session_info)
+        
+        return test_case
     
     def _build_url(self, path: str) -> str:
         """Build full URL from path"""

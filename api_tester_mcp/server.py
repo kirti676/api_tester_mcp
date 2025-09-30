@@ -14,11 +14,12 @@ from pydantic import BaseModel
 
 from .models import (
     SpecType, TestSession, TestScenario, TestCase, TestResult,
-    StatusType
+    StatusType, TestLanguage, TestFramework
 )
 from .parsers import SpecificationParser, ScenarioGenerator, analyze_required_env_vars
 from .test_execution import TestCaseGenerator, TestExecutor, LoadTestExecutor
 from .reports import ReportGenerator
+from .code_generators import get_supported_combinations, generate_package_files
 from .utils import (
     generate_id, validate_spec_type, logger, ProgressTracker,
     merge_env_vars, validate_url, extract_error_details
@@ -43,6 +44,8 @@ os.makedirs("output/test_cases", exist_ok=True)
 class IngestSpecParams(BaseModel):
     spec_type: str
     content: str
+    preferred_language: Optional[str] = "python"
+    preferred_framework: Optional[str] = "requests"
 
 
 class SetEnvVarsParams(BaseModel):
@@ -56,6 +59,8 @@ class GenerateScenariosParams(BaseModel):
 
 class GenerateTestCasesParams(BaseModel):
     scenario_ids: Optional[List[str]] = None
+    language: Optional[str] = None
+    framework: Optional[str] = None
 
 
 class RunApiTestsParams(BaseModel):
@@ -80,6 +85,8 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
     Args:
         spec_type: Type of specification ('openapi', 'swagger', or 'postman')
         content: The specification content as JSON or YAML string
+        preferred_language: Preferred programming language for test generation (python, typescript, javascript)
+        preferred_framework: Preferred testing framework (pytest, playwright, jest, etc.)
     
     Returns:
         Dictionary with ingestion results, session information, and environment variable analysis
@@ -114,13 +121,26 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
         spec_data = json.loads(params.content) if params.content.strip().startswith('{') else yaml.safe_load(params.content)
         env_analysis = analyze_required_env_vars(spec_data, spec_type, parser.base_url)
         
+        # Parse language and framework preferences
+        try:
+            preferred_language = TestLanguage(params.preferred_language.lower())
+        except ValueError:
+            preferred_language = TestLanguage.PYTHON
+            
+        try:
+            preferred_framework = TestFramework(params.preferred_framework.lower())
+        except ValueError:
+            preferred_framework = TestFramework.REQUESTS
+
         # Create new session
         session_id = generate_id()
         current_session = TestSession(
             id=session_id,
             spec_type=spec_type,
             spec_content=spec_data,
-            created_at=datetime.now().isoformat()
+            created_at=datetime.now().isoformat(),
+            preferred_language=preferred_language,
+            preferred_framework=preferred_framework
         )
         
         logger.info(f"Created new session {session_id} with {len(endpoints)} endpoints")
@@ -143,6 +163,8 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
             "success": True,
             "session_id": session_id,
             "spec_type": spec_type.value,
+            "preferred_language": preferred_language.value,
+            "preferred_framework": preferred_framework.value,
             "endpoints_count": len(endpoints),
             "endpoints": [
                 {
@@ -308,14 +330,16 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
 @mcp.tool()
 async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]:
     """
-    Generate executable test cases from scenarios.
+    Generate executable test cases from scenarios in the specified language and framework.
     
     Args:
         scenario_ids: Optional list of specific scenario IDs to generate test cases for.
                      If not provided, generates for all scenarios.
+        language: Programming language (python, typescript, javascript). Uses session default if not provided.
+        framework: Testing framework (pytest, playwright, jest, etc.). Uses session default if not provided.
     
     Returns:
-        Dictionary with generated test cases information
+        Dictionary with generated test cases information including generated code
     """
     global current_session
     
@@ -346,9 +370,25 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
                     "error": "No matching scenarios found for provided IDs"
                 }
         
+        # Parse language and framework if provided, otherwise use session defaults
+        language = current_session.preferred_language
+        framework = current_session.preferred_framework
+        
+        if params.language:
+            try:
+                language = TestLanguage(params.language.lower())
+            except ValueError:
+                pass
+        
+        if params.framework:
+            try:
+                framework = TestFramework(params.framework.lower())
+            except ValueError:
+                pass
+
         # Generate test cases
         base_url = current_session.env_vars.get("baseUrl", "")
-        generator = TestCaseGenerator(base_url, current_session.env_vars)
+        generator = TestCaseGenerator(base_url, current_session.env_vars, language, framework)
         
         progress = ProgressTracker(len(scenarios_to_process), "Test Case Generation")
         progress.start()
@@ -375,6 +415,8 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         return {
             "success": True,
             "session_id": current_session.id,
+            "language": language.value,
+            "framework": framework.value,
             "test_cases_count": len(test_cases),
             "test_cases": [
                 {
@@ -384,11 +426,15 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
                     "method": test_case.method,
                     "url": test_case.url,
                     "expected_status": test_case.expected_status,
-                    "assertions_count": len(test_case.assertions)
+                    "assertions_count": len(test_case.assertions),
+                    "language": test_case.language.value,
+                    "framework": test_case.framework.value,
+                    "has_generated_code": bool(test_case.generated_code)
                 }
                 for test_case in test_cases
             ],
-            "test_cases_file": test_cases_file
+            "test_cases_file": test_cases_file,
+            "generated_code_available": all(tc.generated_code for tc in test_cases)
         }
         
     except Exception as e:
@@ -684,6 +730,268 @@ async def get_env_var_suggestions() -> Dict[str, Any]:
             "success": False,
             "error": f"Failed to analyze environment variables: {error_details['message']}"
         }
+
+
+@mcp.tool()
+async def get_supported_languages() -> Dict[str, Any]:
+    """
+    Get list of supported programming languages and testing frameworks.
+    
+    Returns:
+        Dictionary with supported language/framework combinations and their descriptions
+    """
+    try:
+        combinations = get_supported_combinations()
+        
+        return {
+            "success": True,
+            "supported_combinations": combinations,
+            "languages": ["python", "typescript", "javascript"],
+            "frameworks": {
+                "python": ["pytest", "requests"],
+                "typescript": ["playwright", "supertest"],
+                "javascript": ["jest", "cypress"]
+            },
+            "recommendations": {
+                "beginners": {"language": "python", "framework": "requests"},
+                "comprehensive_testing": {"language": "python", "framework": "pytest"},
+                "modern_web_apis": {"language": "typescript", "framework": "playwright"},
+                "node_js_apis": {"language": "javascript", "framework": "jest"},
+                "e2e_testing": {"language": "typescript", "framework": "playwright"}
+            }
+        }
+    except Exception as e:
+        logger.error(f"Failed to get supported languages: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to get supported languages: {str(e)}"
+        }
+
+
+class GenerateProjectParams(BaseModel):
+    language: str
+    framework: str
+    project_name: Optional[str] = "api-tests"
+    include_examples: bool = True
+
+
+@mcp.tool()
+async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any]:
+    """
+    Generate complete project files for the selected language and framework.
+    
+    Args:
+        language: Programming language (python, typescript, javascript)
+        framework: Testing framework (pytest, playwright, jest, etc.)
+        project_name: Name for the generated project
+        include_examples: Whether to include example test files
+    
+    Returns:
+        Dictionary with generated project files and setup instructions
+    """
+    global current_session
+    
+    try:
+        # Validate language and framework
+        try:
+            language_enum = TestLanguage(params.language.lower())
+            framework_enum = TestFramework(params.framework.lower())
+        except ValueError as e:
+            return {
+                "success": False,
+                "error": f"Unsupported language/framework combination: {params.language}/{params.framework}"
+            }
+        
+        # Generate package files
+        package_files = generate_package_files(language_enum, framework_enum)
+        
+        # Generate example test files if requested and session exists
+        example_files = {}
+        if params.include_examples and current_session and current_session.test_cases:
+            try:
+                generator = TestCaseGenerator(
+                    base_url=current_session.env_vars.get("baseUrl", ""),
+                    env_vars=current_session.env_vars,
+                    language=language_enum,
+                    framework=framework_enum
+                )
+                
+                # Generate code for existing test cases
+                session_info = {
+                    'id': current_session.id,
+                    'base_url': current_session.env_vars.get("baseUrl", ""),
+                    'auth_token': current_session.env_vars.get('auth_bearer', ''),
+                }
+                
+                code_generator = generator.code_generator
+                test_code = code_generator.generate_test_code(current_session.test_cases[:5], session_info)
+                
+                # Determine file extension and path
+                if language_enum == TestLanguage.PYTHON:
+                    if framework_enum == TestFramework.PYTEST:
+                        example_files["tests/test_api.py"] = test_code
+                    else:
+                        example_files["test_api.py"] = test_code
+                elif language_enum == TestLanguage.TYPESCRIPT:
+                    if framework_enum == TestFramework.PLAYWRIGHT:
+                        example_files["tests/api.spec.ts"] = test_code
+                    else:
+                        example_files["tests/api.test.ts"] = test_code
+                elif language_enum == TestLanguage.JAVASCRIPT:
+                    if framework_enum == TestFramework.CYPRESS:
+                        example_files["cypress/e2e/api.cy.js"] = test_code
+                    else:
+                        example_files["tests/api.test.js"] = test_code
+                        
+            except Exception as e:
+                logger.warning(f"Failed to generate example files: {str(e)}")
+        
+        # Generate setup instructions
+        setup_instructions = _generate_setup_instructions(language_enum, framework_enum, params.project_name)
+        
+        # Save files to output directory if possible
+        import os
+        project_dir = f"output/generated_projects/{params.project_name}"
+        os.makedirs(project_dir, exist_ok=True)
+        
+        saved_files = []
+        all_files = {**package_files, **example_files}
+        
+        for filename, content in all_files.items():
+            file_path = os.path.join(project_dir, filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            saved_files.append(file_path)
+        
+        logger.info(f"Generated {params.language}/{params.framework} project: {project_dir}")
+        
+        return {
+            "success": True,
+            "language": params.language,
+            "framework": params.framework,
+            "project_name": params.project_name,
+            "project_directory": project_dir,
+            "generated_files": {
+                "package_files": list(package_files.keys()),
+                "example_files": list(example_files.keys()) if example_files else [],
+                "all_files": list(all_files.keys())
+            },
+            "file_contents": all_files,
+            "setup_instructions": setup_instructions,
+            "saved_files": saved_files
+        }
+        
+    except Exception as e:
+        error_details = extract_error_details(e)
+        logger.error(f"Failed to generate project files: {error_details}")
+        return {
+            "success": False,
+            "error": f"Failed to generate project files: {error_details['message']}"
+        }
+
+
+def _generate_setup_instructions(language: TestLanguage, framework: TestFramework, project_name: str) -> List[str]:
+    """Generate setup instructions for the selected language/framework"""
+    instructions = [
+        f"# Setup Instructions for {project_name}",
+        "",
+        f"## {language.value.title()} + {framework.value.title()} Project Setup",
+        ""
+    ]
+    
+    if language == TestLanguage.PYTHON:
+        instructions.extend([
+            "1. Ensure Python 3.8+ is installed",
+            "2. Create a virtual environment:",
+            "   ```bash",
+            "   python -m venv venv",
+            "   source venv/bin/activate  # On Windows: venv\\Scripts\\activate",
+            "   ```",
+            "3. Install dependencies:",
+            "   ```bash",
+            "   pip install -r requirements.txt",
+            "   ```"
+        ])
+        
+        if framework == TestFramework.PYTEST:
+            instructions.extend([
+                "4. Run tests:",
+                "   ```bash",
+                "   pytest tests/ -v",
+                "   pytest tests/ --html=report.html  # Generate HTML report",
+                "   ```"
+            ])
+        else:
+            instructions.extend([
+                "4. Run tests:",
+                "   ```bash",
+                "   python test_api.py",
+                "   ```"
+            ])
+            
+    elif language in [TestLanguage.TYPESCRIPT, TestLanguage.JAVASCRIPT]:
+        instructions.extend([
+            "1. Ensure Node.js 16+ is installed",
+            "2. Install dependencies:",
+            "   ```bash",
+            "   npm install",
+            "   ```"
+        ])
+        
+        if framework == TestFramework.PLAYWRIGHT:
+            instructions.extend([
+                "3. Install Playwright browsers:",
+                "   ```bash",
+                "   npx playwright install",
+                "   ```",
+                "4. Run tests:",
+                "   ```bash",
+                "   npm test",
+                "   npm run test:headed  # Run with browser UI",
+                "   ```"
+            ])
+        elif framework == TestFramework.JEST:
+            instructions.extend([
+                "3. Run tests:",
+                "   ```bash",
+                "   npm test",
+                "   npm run test:watch  # Run in watch mode",
+                "   ```"
+            ])
+        elif framework == TestFramework.CYPRESS:
+            instructions.extend([
+                "3. Run tests:",
+                "   ```bash",
+                "   npm test  # Headless mode",
+                "   npm run test:open  # Interactive mode",
+                "   ```"
+            ])
+        elif framework == TestFramework.SUPERTEST:
+            instructions.extend([
+                "3. Run tests:",
+                "   ```bash",
+                "   npm test",
+                "   ```"
+            ])
+    
+    instructions.extend([
+        "",
+        "## Environment Variables",
+        "",
+        "Set the following environment variables:",
+        "- `BASE_URL`: API base URL",
+        "- `AUTH_TOKEN`: Authentication token (if required)",
+        "",
+        "Example:",
+        "```bash",
+        "export BASE_URL=https://api.example.com",
+        "export AUTH_TOKEN=your-token-here",
+        "```"
+    ])
+    
+    return instructions
 
 
 @mcp.tool()

@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-09-30
+
+### 🚀 Major Feature: Multi-Language Test Generation
+
+#### Added
+- **Multi-Language Support**: Generate test code in TypeScript, JavaScript, and Python
+- **Framework Support**: Support for Playwright, Jest, pytest, Supertest, Cypress, and requests
+- **New MCP Tools**:
+  - `get_supported_languages`: List all supported language/framework combinations
+  - `generate_project_files`: Create complete, ready-to-run test projects
+- **Enhanced MCP Tools**:
+  - `ingest_spec`: Now accepts `preferred_language` and `preferred_framework` parameters
+  - `generate_test_cases`: Enhanced with `language` and `framework` parameters
+- **Code Generation Engine**: Comprehensive Jinja2-based templates for each language/framework
+- **Project Scaffolding**: Complete project generation with dependencies, configuration, and setup instructions
+
+#### Language/Framework Combinations
+- **TypeScript + Playwright**: Enterprise E2E testing with type safety
+- **TypeScript + Supertest**: Express.js API testing with TypeScript
+- **JavaScript + Jest**: Popular testing framework with extensive ecosystem
+- **JavaScript + Cypress**: E2E testing with excellent developer experience
+- **Python + pytest**: Comprehensive testing with fixtures and plugins
+- **Python + requests**: Simple HTTP testing for rapid validation
+
+#### Generated Project Features
+- **Package Configuration**: Automatic package.json, requirements.txt generation
+- **Framework Configuration**: Proper config files (playwright.config.ts, pytest.ini, etc.)
+- **Example Test Files**: Complete test code with proper imports and setup
+- **Setup Instructions**: Detailed setup and run instructions for each project type
+- **Environment Variable Support**: Proper handling of BASE_URL, AUTH_TOKEN across all languages
+
+#### Enhanced Data Models
+- Added `TestLanguage` enum (Python, TypeScript, JavaScript)
+- Added `TestFramework` enum (pytest, requests, Playwright, Jest, Supertest, Cypress)
+- Enhanced `TestCase` model with `language`, `framework`, and `generated_code` fields
+- Enhanced `TestSession` model with `preferred_language` and `preferred_framework`
+
+#### Documentation
+- Updated README with comprehensive multi-language examples
+- Added `examples/multi_language_example.md` with detailed usage guide
+- Updated roadmap to reflect completed multi-language support
+- Enhanced configuration examples with language selection
+
+### 🔧 Technical Improvements
+- **Code Generation Templates**: 6 comprehensive Jinja2 templates for different language/framework combinations
+- **Package File Generation**: Automatic generation of package.json, requirements.txt, and configuration files
+- **Setup Instruction Generation**: Dynamic generation of setup instructions based on selected language/framework
+- **Enhanced Error Handling**: Better error messages for unsupported language/framework combinations
+
+### 🎯 Breaking Changes
+- `TestCase` model now includes `language` and `framework` fields (default to Python/requests for backward compatibility)
+- `TestSession` model now includes language preferences
+
+### 📦 Dependencies
+- No new runtime dependencies added
+- Maintains backward compatibility with existing installations
+
 ## [1.0.0] - 2025-09-02
 
 ### Added

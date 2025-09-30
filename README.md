@@ -118,6 +118,7 @@ For MCP clients like Claude Desktop, use this configuration:
 
 - **📥 Input Support**: Swagger/OpenAPI documents and Postman collections
 - **🔄 Test Generation**: Automatic API and Load test scenario generation
+- **🌐 Multi-Language Support**: Generate tests in TypeScript/Playwright, JavaScript/Jest, Python/pytest, and more
 - **⚡ Test Execution**: Run generated tests with detailed reporting
 - **🔐 Smart Auth Detection**: Automatic environment variable analysis and setup guidance
 - **🔐 Authentication**: Bearer token and API key support via `set_env_vars`
@@ -128,6 +129,94 @@ For MCP clients like Claude Desktop, use this configuration:
 - **📊 Performance Metrics**: Throughput calculations and execution summaries
 - **✅ Schema Validation**: Request body generation from schema examples
 - **🎯 Assertions**: Per-endpoint status code assertions (2xx, 4xx, 5xx)
+- **📦 Project Generation**: Complete project scaffolding with dependencies and configuration
+
+## 🌐 Multi-Language Test Generation
+
+The API Tester MCP now supports generating test code in multiple programming languages and testing frameworks:
+
+### Supported Language/Framework Combinations
+
+| Language   | Framework  | Description                                    | Use Case                    |
+|------------|------------|------------------------------------------------|-----------------------------|
+| TypeScript | Playwright | Modern E2E testing with excellent API support | Enterprise web applications |
+| TypeScript | Supertest  | Express.js focused API testing                | Node.js backend services    |
+| JavaScript | Jest       | Popular testing framework with good ecosystem | General API testing         |
+| JavaScript | Cypress    | E2E testing with great developer experience   | Full-stack applications     |
+| Python     | pytest     | Comprehensive testing with fixtures & plugins | Data-heavy APIs & ML services |
+| Python     | requests   | Simple HTTP testing for quick validation      | Rapid prototyping & scripts |
+
+### Language Selection Workflow
+
+```javascript
+// 1. Get available languages and frameworks
+const languages = await mcp.call("get_supported_languages");
+
+// 2. Choose your preferred combination
+await mcp.call("ingest_spec", {
+  spec_type: "openapi",
+  content: spec_content,
+  preferred_language: "typescript",    // python, typescript, javascript
+  preferred_framework: "playwright"     // varies by language
+});
+
+// 3. Generate test cases with code
+await mcp.call("generate_test_cases", {
+  language: "typescript",
+  framework: "playwright"
+});
+
+// 4. Get complete project setup
+await mcp.call("generate_project_files", {
+  language: "typescript",
+  framework: "playwright",
+  project_name: "my-api-tests",
+  include_examples: true
+});
+```
+
+### Generated Project Structure
+
+The `generate_project_files` tool creates a complete, ready-to-run project:
+
+**TypeScript + Playwright:**
+```
+my-api-tests/
+├── package.json          # Dependencies & scripts
+├── playwright.config.ts  # Playwright configuration
+├── tests/
+│   └── api.spec.ts      # Generated test code
+└── README.md            # Setup instructions
+```
+
+**Python + pytest:**
+```
+my-api-tests/
+├── requirements.txt     # Python dependencies
+├── pytest.ini         # pytest configuration
+├── tests/
+│   └── test_api.py    # Generated test code
+└── README.md          # Setup instructions
+```
+
+**JavaScript + Jest:**
+```
+my-api-tests/
+├── package.json       # Dependencies & scripts
+├── jest.config.js     # Jest configuration
+├── tests/
+│   └── api.test.js   # Generated test code
+└── README.md         # Setup instructions
+```
+
+### Framework-Specific Features
+
+- **Playwright**: Browser automation, parallel execution, detailed reporting
+- **Jest**: Snapshot testing, mocking, watch mode for development
+- **pytest**: Fixtures, parametrized tests, extensive plugin ecosystem
+- **Cypress**: Interactive debugging, time-travel debugging, real browser testing
+- **Supertest**: Express.js integration, middleware testing
+- **requests**: Simple API calls, session management, authentication helpers
 
 ## 📈 Progress Tracking
 
@@ -155,16 +244,18 @@ The API Tester MCP includes comprehensive progress tracking for all operations:
 
 ## 🛠️ MCP Tools
 
-The server provides 8 comprehensive MCP tools:
+The server provides 10 comprehensive MCP tools:
 
-1. **`ingest_spec`** - Load Swagger/OpenAPI or Postman collections with automatic environment variable analysis
-2. **`get_env_var_suggestions`** - Get detailed environment variable setup guidance (NEW!)
-3. **`set_env_vars`** - Configure authentication and environment variables
-4. **`generate_scenarios`** - Create test scenarios from specifications
-5. **`generate_test_cases`** - Convert scenarios to executable test cases
-6. **`run_api_tests`** - Execute API tests with detailed results
-7. **`run_load_tests`** - Execute performance/load tests
-8. **`get_session_status`** - Retrieve current session information
+1. **`ingest_spec`** - Load Swagger/OpenAPI or Postman collections with language preferences
+2. **`get_supported_languages`** - Get list of supported programming languages and frameworks (NEW!)
+3. **`get_env_var_suggestions`** - Get detailed environment variable setup guidance
+4. **`set_env_vars`** - Configure authentication and environment variables
+5. **`generate_scenarios`** - Create test scenarios from specifications
+6. **`generate_test_cases`** - Convert scenarios to executable test cases in selected language/framework (ENHANCED!)
+7. **`generate_project_files`** - Generate complete project with dependencies and configuration (NEW!)
+8. **`run_api_tests`** - Execute API tests with detailed results
+9. **`run_load_tests`** - Execute performance/load tests
+10. **`get_session_status`** - Retrieve current session information
 
 ## 📚 MCP Resources
 
@@ -204,11 +295,20 @@ console.log(suggestions.setup_instructions);
 // Provides copy-paste ready configuration examples
 ```
 
-## �🔧 Configuration Example
+## 🔧 Configuration Example
 
 ```javascript
-// NEW: Get smart suggestions first
-const suggestions = await mcp.call("get_env_var_suggestions");
+// NEW: Check supported languages and frameworks
+const languages = await mcp.call("get_supported_languages");
+console.log(languages.supported_combinations);
+
+// Ingest specification with language preferences
+await mcp.call("ingest_spec", {
+  spec_type: "openapi",
+  content: openapi_json_string,
+  preferred_language: "typescript",
+  preferred_framework: "playwright"
+});
 
 // Set environment variables for authentication
 await mcp.call("set_env_vars", {
@@ -219,19 +319,27 @@ await mcp.call("set_env_vars", {
   }
 });
 
-// Ingest an OpenAPI specification (now with automatic env var analysis)
-await mcp.call("ingest_spec", {
-  spec_type: "openapi",
-  content: openapi_json_string
-});
-
 // Generate test scenarios
 await mcp.call("generate_scenarios", {
   include_negative_tests: true,
   include_edge_cases: true
 });
 
-// Run API tests
+// Generate test cases in TypeScript/Playwright
+await mcp.call("generate_test_cases", {
+  language: "typescript",
+  framework: "playwright"
+});
+
+// Generate complete project files
+await mcp.call("generate_project_files", {
+  language: "typescript",
+  framework: "playwright",
+  project_name: "my-api-tests",
+  include_examples: true
+});
+
+// Run API tests (still works with existing execution engine)
 await mcp.call("run_api_tests", {
   max_concurrent: 5
 });
@@ -428,12 +536,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Roadmap
 
+- [x] **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
+- [x] **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
 - [ ] GraphQL API support
 - [ ] Additional authentication methods (OAuth2, JWT)
+- [ ] Go/Golang test generation (with testify/ginkgo)
+- [ ] C#/.NET test generation (with NUnit/xUnit)
 - [ ] Performance monitoring and alerting
-- [ ] Integration with CI/CD pipelines
-- [ ] Test data generation from examples
-- [ ] API contract testing
+- [ ] Integration with CI/CD pipelines (GitHub Actions, Jenkins)
+- [ ] Advanced test data generation from examples and schemas
+- [ ] API contract testing with Pact support
+- [ ] Mock server generation for development
 
 ---
 
