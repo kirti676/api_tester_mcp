@@ -59,15 +59,17 @@ const AUTH_TOKEN = process.env.AUTH_TOKEN || '{{ session_info.auth_token }}';
 
 {% for test_case in test_cases %}
 test('{{ test_case.name }}', async ({ request }) => {
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    {% if test_case.headers %}
-    {% for key, value in test_case.headers.items() %}
-    '{{ key }}': '{{ value }}',
-    {% endfor %}
-    {% endif %}
+    'Accept': 'application/json'
   };
+  
+  {% if test_case.headers %}
+  // Add additional headers, overriding defaults if necessary
+  {% for key, value in test_case.headers.items() %}
+  headers['{{ key }}'] = '{{ value }}';
+  {% endfor %}
+  {% endif %}
 
   {% if test_case.body %}
   const requestBody = {{ test_case.body | tojson }};
@@ -132,18 +134,22 @@ describe('API Test Suite', () => {
   {% for test_case in test_cases %}
   
   test('{{ test_case.name }}', async () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    {% if test_case.headers %}
+    // Add additional headers, overriding defaults if necessary
+    {% for key, value in test_case.headers.items() %}
+    headers['{{ key }}'] = '{{ value }}';
+    {% endfor %}
+    {% endif %}
+    
     const config = {
       method: '{{ test_case.method.lower() }}',
       url: '{{ test_case.url }}',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        {% if test_case.headers %}
-        {% for key, value in test_case.headers.items() %}
-        '{{ key }}': '{{ value }}',
-        {% endfor %}
-        {% endif %}
-      },
+      headers,
       timeout: {{ test_case.timeout * 1000 }},
       {% if test_case.body %}
       data: {{ test_case.body | tojson }},
@@ -214,13 +220,15 @@ class TestAPIEndpoints:
         
         headers = {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            {% if test_case.headers %}
-            {% for key, value in test_case.headers.items() %}
-            '{{ key }}': '{{ value }}',
-            {% endfor %}
-            {% endif %}
+            'Accept': 'application/json'
         }
+        
+        {% if test_case.headers %}
+        # Add additional headers, overriding defaults if necessary
+        {% for key, value in test_case.headers.items() %}
+        headers['{{ key }}'] = '{{ value }}'
+        {% endfor %}
+        {% endif %}
         
         {% if test_case.body %}
         request_body = {{ test_case.body | tojson }}
@@ -294,13 +302,15 @@ def run_all_tests():
     try:
         headers = {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            {% if test_case.headers %}
-            {% for key, value in test_case.headers.items() %}
-            '{{ key }}': '{{ value }}',
-            {% endfor %}
-            {% endif %}
+            'Accept': 'application/json'
         }
+        
+        {% if test_case.headers %}
+        # Add additional headers, overriding defaults if necessary
+        {% for key, value in test_case.headers.items() %}
+        headers['{{ key }}'] = '{{ value }}'
+        {% endfor %}
+        {% endif %}
         
         {% if test_case.body %}
         request_body = {{ test_case.body | tojson }}
@@ -405,16 +415,18 @@ describe('API Test Suite', () => {
   {% for test_case in test_cases %}
   
   it('{{ test_case.name }}', async () => {
-    const req = request(BASE_URL)
+    let req = request(BASE_URL)
       .{{ test_case.method.lower() }}('{{ test_case.url.replace(session_info.base_url, '') }}')
       .set('Content-Type', 'application/json')
       .set('Accept', 'application/json')
-      {% if test_case.headers %}
-      {% for key, value in test_case.headers.items() %}
-      .set('{{ key }}', '{{ value }}')
-      {% endfor %}
-      {% endif %}
       .timeout({{ test_case.timeout * 1000 }});
+    
+    {% if test_case.headers %}
+    // Add additional headers (will override defaults if same key)
+    {% for key, value in test_case.headers.items() %}
+    req = req.set('{{ key }}', '{{ value }}');
+    {% endfor %}
+    {% endif %}
     
     {% if test_case.body %}
     req.send({{ test_case.body | tojson }});
@@ -462,18 +474,22 @@ describe('API Test Suite', () => {
   {% for test_case in test_cases %}
   
   it('{{ test_case.name }}', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    {% if test_case.headers %}
+    // Add additional headers, overriding defaults if necessary
+    {% for key, value in test_case.headers.items() %}
+    headers['{{ key }}'] = '{{ value }}';
+    {% endfor %}
+    {% endif %}
+    
     const options = {
       method: '{{ test_case.method }}',
       url: '{{ test_case.url }}',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        {% if test_case.headers %}
-        {% for key, value in test_case.headers.items() %}
-        '{{ key }}': '{{ value }}',
-        {% endfor %}
-        {% endif %}
-      },
+      headers,
       timeout: {{ test_case.timeout * 1000 }},
       {% if test_case.body %}
       body: {{ test_case.body | tojson }},

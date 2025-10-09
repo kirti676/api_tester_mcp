@@ -1,6 +1,6 @@
 {
   "name": "@kirti676/api-tester-mcp",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Multi-language MCP server for API testing with TypeScript/Playwright, JavaScript/Jest, Python/pytest support",
   "main": "cli.js",
   "bin": {

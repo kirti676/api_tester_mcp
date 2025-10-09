@@ -1,8 +1,7 @@
 # API Tester MCP Server
 
-[![npm version](https://badge.fury.io/js/@kirti676/api-tester-mcp.svg)](https://badge.fury.io/js/@kirti676/api-tester-mcp)
+[![npm (scoped)](https://img.shields.io/npm/v/@kirti676/api-tester-mcp.svg)](https://img.shields.io/npm/v/@kirti676/api-tester-mcp.svg)
 [![npm downloads](https://img.shields.io/npm/dt/@kirti676/api-tester-mcp.svg)](https://www.npmjs.com/package/@kirti676/api-tester-mcp)
-[![PyPI version](https://badge.fury.io/py/api-tester-mcp.svg)](https://badge.fury.io/py/api-tester-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that provides API testing capabilities with Swagger/OpenAPI and Postman collection support.
