@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2024-10-09
+
+### Enhanced
+- Cleaned up API parameter models to remove exposed default values and implementation details
+- Improved GenerateTestCasesParams and GenerateProjectParams interfaces for better security
+- Removed internal default handling logic from public API documentation
+
+### Fixed
+- Parameter classes no longer expose internal default values or session handling mechanisms
+- Function docstrings simplified to not reveal implementation details
+
 ## [1.2.1] - 2024-12-09
 
 ### Removed

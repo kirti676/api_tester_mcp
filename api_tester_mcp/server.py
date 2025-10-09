@@ -35,60 +35,141 @@ report_generator = ReportGenerator()
 
 # Get the workspace directory (current working directory where VS Code is running)
 def get_workspace_dir() -> str:
-    """Get the current workspace directory"""
-    # Try to get from environment variable first (VS Code sets this)
-    workspace_dir = os.environ.get('PWD') or os.environ.get('WORKSPACE_DIR') or os.getcwd()
-    return workspace_dir
-
-def get_or_create_project_dir() -> str:
-    """Get current working directory or create API_Test_Project directory"""
-    current_dir = os.getcwd()
-    
-    # Check if we can write to current directory
-    if os.access(current_dir, os.W_OK):
-        logger.info(f"Using current working directory: {current_dir}")
-        return current_dir
-    
-    # Create API_Test_Project directory in current directory or user's home
-    try:
-        project_dir = os.path.join(current_dir, "API_Test_Project")
-        os.makedirs(project_dir, exist_ok=True)
-        logger.info(f"Created/using API_Test_Project directory: {project_dir}")
-        return project_dir
-    except Exception as e:
-        # Fallback to user's home directory
-        try:
-            home_dir = os.path.expanduser("~")
-            project_dir = os.path.join(home_dir, "API_Test_Project")
-            os.makedirs(project_dir, exist_ok=True)
-            logger.info(f"Created/using API_Test_Project in home directory: {project_dir}")
-            return project_dir
-        except Exception as e2:
-            logger.error(f"Failed to create project directory: {str(e2)}")
-            # Last resort - use current directory even if not writable
-            return current_dir
-
-# Ensure output directories exist in workspace
-def ensure_output_directories():
-    """Create output directories in the current workspace"""
-    workspace_dir = get_workspace_dir()
-    output_base = os.path.join(workspace_dir, "output")
-    
-    directories = [
-        ("reports", os.path.join(output_base, "reports")),
-        ("scenarios", os.path.join(output_base, "scenarios")),
-        ("test_cases", os.path.join(output_base, "test_cases")),
-        ("generated_projects", os.path.join(output_base, "generated_projects"))
+    """
+    Get the current workspace directory with multiple fallback strategies.
+    This ensures the function works across different environments and workspace configurations.
+    """
+    # Strategy 1: Environment variables (VS Code and other IDEs set these)
+    workspace_candidates = [
+        os.environ.get('PWD'),
+        os.environ.get('WORKSPACE_DIR'),
+        os.environ.get('VSCODE_CWD'),
+        os.environ.get('INIT_CWD')
     ]
     
-    for dir_name, dir_path in directories:
+    # Strategy 2: Current working directory
+    workspace_candidates.append(os.getcwd())
+    
+    # Strategy 3: Python script directory (if running from a specific location)
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Go up directories to find a potential workspace root
+        potential_workspace = script_dir
+        for _ in range(3):  # Check up to 3 levels up
+            if any(os.path.exists(os.path.join(potential_workspace, indicator)) 
+                  for indicator in ['.git', '.vscode', 'package.json', 'requirements.txt', 'pyproject.toml']):
+                workspace_candidates.append(potential_workspace)
+                break
+            potential_workspace = os.path.dirname(potential_workspace)
+    except Exception:
+        pass
+    
+    # Select the first valid directory that exists and is writable
+    for candidate in workspace_candidates:
+        if candidate and os.path.exists(candidate) and os.path.isdir(candidate):
+            try:
+                # Test if directory is writable
+                test_file = os.path.join(candidate, '.mcp_test_write')
+                with open(test_file, 'w') as f:
+                    f.write('test')
+                os.remove(test_file)
+                logger.info(f"Selected workspace directory: {candidate}")
+                return candidate
+            except Exception:
+                continue
+    
+    # Final fallback: use current directory even if not writable
+    fallback = os.getcwd()
+    logger.warning(f"Using fallback workspace directory (may not be writable): {fallback}")
+    return fallback
+
+def get_or_create_project_dir() -> str:
+    """Get current working directory - always use workspace for generated files"""
+    workspace_dir = get_workspace_dir()
+    
+    # Always use the workspace directory directly
+    if os.access(workspace_dir, os.W_OK):
+        logger.info(f"Using workspace directory: {workspace_dir}")
+        return workspace_dir
+    else:
+        logger.warning(f"Workspace directory not writable, using anyway: {workspace_dir}")
+        return workspace_dir
+
+def ensure_workspace_output_dir(subdir: str) -> str:
+    """
+    Ensure a specific output subdirectory exists in the workspace.
+    Creates the directory structure as needed.
+    
+    Args:
+        subdir: The subdirectory name (e.g., 'scenarios', 'test_cases', 'reports')
+    
+    Returns:
+        Full path to the created subdirectory
+    """
+    workspace_dir = get_workspace_dir()
+    
+    # Try different output directory patterns commonly used
+    possible_output_dirs = [
+        "output",           # Standard output dir
+        "generated",        # Alternative name
+        "api-test-output",  # Descriptive name
+        "mcp-output"        # MCP-specific name
+    ]
+    
+    output_base = None
+    
+    # Check if any standard output directory already exists
+    for output_dir_name in possible_output_dirs:
+        potential_output = os.path.join(workspace_dir, output_dir_name)
+        if os.path.exists(potential_output) and os.path.isdir(potential_output):
+            output_base = potential_output
+            logger.info(f"Found existing output directory: {output_base}")
+            break
+    
+    # If no existing output directory found, create the default one
+    if output_base is None:
+        output_base = os.path.join(workspace_dir, "output")
+        logger.info(f"Creating new output directory: {output_base}")
+    
+    # Create the specific subdirectory
+    target_dir = os.path.join(output_base, subdir)
+    
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        logger.info(f"Created/verified directory: {target_dir}")
+        return target_dir
+    except Exception as e:
+        # Fallback: create directly in workspace if output directory creation fails
+        logger.warning(f"Failed to create {target_dir}, falling back to workspace subdirectory: {str(e)}")
+        fallback_dir = os.path.join(workspace_dir, f"api-test-{subdir}")
         try:
-            os.makedirs(dir_path, exist_ok=True)
-            logger.info(f"Created/verified output directory: {dir_path}")
-        except Exception as e:
-            logger.error(f"Failed to create {dir_name} directory {dir_path}: {str(e)}")
+            os.makedirs(fallback_dir, exist_ok=True)
+            logger.info(f"Created fallback directory: {fallback_dir}")
+            return fallback_dir
+        except Exception as e2:
+            # Last resort: use workspace directory directly
+            logger.error(f"Failed to create fallback directory, using workspace directly: {str(e2)}")
+            return workspace_dir
+
+# Legacy function for compatibility - now dynamically ensures directories
+def ensure_output_directories():
+    """Create output directories in the current workspace (legacy compatibility)"""
+    workspace_dir = get_workspace_dir()
+    
+    # Use the new dynamic approach for each subdirectory
+    subdirs = ["reports", "scenarios", "test_cases", "generated_projects"]
+    created_dirs = {}
+    
+    for subdir in subdirs:
+        created_dirs[subdir] = ensure_workspace_output_dir(subdir)
+    
+    # Return the base output directory (parent of the first created directory)
+    first_dir = list(created_dirs.values())[0]
+    output_base = os.path.dirname(first_dir)
     
     logger.info(f"Output base directory: {output_base}")
+    logger.info(f"Created subdirectories: {created_dirs}")
+    
     return output_base
 
 # Utility function to check directory permissions
@@ -131,7 +212,7 @@ def check_directory_access(directory_path: str) -> Dict[str, Any]:
             "error": str(e)
         }
 
-# Initialize output directories
+# Initialize output directories (legacy compatibility)
 OUTPUT_BASE_DIR = ensure_output_directories()
 
 
@@ -161,9 +242,9 @@ class GenerateScenariosParams(BaseModel):
 
 
 class GenerateTestCasesParams(BaseModel):
-    scenario_ids: Optional[List[str]] = None  # ["scenario_1", "scenario_2"] or None for all
-    language: Optional[str] = None  # python, typescript, javascript (uses session default if None)
-    framework: Optional[str] = None  # pytest, requests, playwright, jest, cypress, supertest (uses session default if None)
+    scenario_ids: Optional[List[str]] = None
+    language: Optional[str] = None
+    framework: Optional[str] = None
 
 
 class RunApiTestsParams(BaseModel):
@@ -539,17 +620,18 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
         # Prepare scenarios data for serialization
         scenarios_data = [scenario.model_dump() for scenario in scenarios]
         
-        # Get or create project directory for saving files
-        project_dir = get_or_create_project_dir()
+        # Dynamically ensure scenarios directory exists in workspace
+        scenarios_dir = ensure_workspace_output_dir("scenarios")
+        workspace_dir = get_workspace_dir()
         
-        # Save scenarios directly to project directory
-        scenarios_file = os.path.join(project_dir, f"scenarios_{current_session.id}.json")
+        # Save scenarios to the dynamically created scenarios directory
+        scenarios_file = os.path.join(scenarios_dir, f"scenarios_{current_session.id}.json")
         scenarios_file_created = False
         try:
             with open(scenarios_file, 'w', encoding='utf-8') as f:
                 json.dump(scenarios_data, f, indent=2)
             scenarios_file_created = True
-            logger.info(f"Successfully saved scenarios to: {scenarios_file}")
+            logger.info(f"Successfully saved scenarios to workspace: {scenarios_file}")
         except Exception as e:
             logger.error(f"Failed to save scenarios to {scenarios_file}: {str(e)}")
             scenarios_file = f"ERROR: Could not create {scenarios_file} - {str(e)}"
@@ -572,10 +654,11 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
                 for scenario in scenarios
             ],
             "scenarios_file": scenarios_file,
-            "project_directory": project_dir,
+            "workspace_directory": workspace_dir,
+            "scenarios_directory": scenarios_dir,
             "file_created": scenarios_file_created,
             "file_path": scenarios_file if scenarios_file_created else "Failed to create",
-            "message": f"Scenarios saved to: {scenarios_file}" if scenarios_file_created else f"Failed to create scenarios file"
+            "message": f"Scenarios saved to workspace: {scenarios_file}" if scenarios_file_created else f"Failed to create scenarios file"
         }
         
     except Exception as e:
@@ -584,7 +667,7 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
         return {
             "success": False,
             "error": f"Failed to generate scenarios: {error_details['message']}",
-            "project_directory": get_or_create_project_dir(),
+            "workspace_directory": get_workspace_dir(),
             "session_id": current_session.id if current_session else "No session"
         }
 
@@ -597,10 +680,9 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
     directory and the current workspace for easy access.
     
     Args:
-        scenario_ids: Optional list of specific scenario IDs to generate test cases for.
-                     If not provided, generates for all scenarios.
-        language: Programming language (python, typescript, javascript). Uses session default if not provided.
-        framework: Testing framework (pytest, playwright, jest, etc.). Uses session default if not provided.
+        scenario_ids: Optional list of specific scenario IDs to generate test cases for
+        language: Programming language (python, typescript, javascript)
+        framework: Testing framework (pytest, playwright, jest, etc.)
     
     Returns:
         Dictionary with generated test cases information including generated code and file paths
@@ -669,20 +751,65 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         # Prepare test cases data for serialization
         test_cases_data = [test_case.model_dump() for test_case in test_cases]
         
-        # Get or create project directory for saving files
-        project_dir = get_or_create_project_dir()
+        # Dynamically ensure test_cases directory exists in workspace
+        test_cases_dir = ensure_workspace_output_dir("test_cases")
+        workspace_dir = get_workspace_dir()
         
-        # Save test cases directly to project directory
-        test_cases_file = os.path.join(project_dir, f"test_cases_{current_session.id}.json")
+        # Save test cases JSON metadata to the dynamically created test_cases directory
+        test_cases_file = os.path.join(test_cases_dir, f"test_cases_{current_session.id}.json")
         test_cases_file_created = False
         try:
             with open(test_cases_file, 'w', encoding='utf-8') as f:
                 json.dump(test_cases_data, f, indent=2)
             test_cases_file_created = True
-            logger.info(f"Successfully saved test cases to: {test_cases_file}")
+            logger.info(f"Successfully saved test cases metadata to workspace: {test_cases_file}")
         except Exception as e:
             logger.error(f"Failed to save test cases to {test_cases_file}: {str(e)}")
             test_cases_file = f"ERROR: Could not create {test_cases_file} - {str(e)}"
+
+        # Also generate and save the actual test code files to workspace
+        code_files_created = []
+        code_files_failed = []
+        try:
+            # Generate test code using the test case generator
+            session_info = {
+                'id': current_session.id,
+                'base_url': base_url,
+                'auth_token': current_session.env_vars.get('auth_bearer', ''),
+            }
+            
+            test_code = generator.code_generator.generate_test_code(test_cases, session_info)
+            
+            # Determine appropriate filename based on language/framework
+            if language == TestLanguage.PYTHON:
+                if framework == TestFramework.PYTEST:
+                    code_filename = f"test_api_{current_session.id}.py"
+                else:
+                    code_filename = f"api_tests_{current_session.id}.py"
+            elif language == TestLanguage.TYPESCRIPT:
+                if framework == TestFramework.PLAYWRIGHT:
+                    code_filename = f"api_tests_{current_session.id}.spec.ts"
+                else:
+                    code_filename = f"api_tests_{current_session.id}.test.ts"
+            elif language == TestLanguage.JAVASCRIPT:
+                if framework == TestFramework.CYPRESS:
+                    code_filename = f"api_tests_{current_session.id}.cy.js"
+                else:
+                    code_filename = f"api_tests_{current_session.id}.test.js"
+            else:
+                code_filename = f"api_tests_{current_session.id}.txt"
+            
+            # Save the code file to workspace root
+            code_file_path = os.path.join(workspace_dir, code_filename)
+            with open(code_file_path, 'w', encoding='utf-8') as f:
+                f.write(test_code)
+            code_files_created.append(code_file_path)
+            logger.info(f"Successfully saved test code to workspace: {code_file_path}")
+            
+        except Exception as e:
+            error_msg = f"Failed to generate test code file: {str(e)}"
+            code_files_failed.append(error_msg)
+            logger.error(error_msg)
         
         progress.finish()
         
@@ -708,11 +835,16 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
                 for test_case in test_cases
             ],
             "test_cases_file": test_cases_file,
-            "project_directory": project_dir,
+            "workspace_directory": workspace_dir,
+            "test_cases_directory": test_cases_dir,
             "generated_code_available": all(tc.generated_code for tc in test_cases),
             "file_created": test_cases_file_created,
             "file_path": test_cases_file if test_cases_file_created else "Failed to create",
-            "message": f"Test cases saved to: {test_cases_file}" if test_cases_file_created else f"Failed to create test cases file"
+            "code_files_created": code_files_created,
+            "code_files_failed": code_files_failed,
+            "message": f"Test cases saved to workspace: {test_cases_file}" + 
+                      (f" | Code files: {', '.join([os.path.basename(f) for f in code_files_created])}" if code_files_created else "") +
+                      (f" | Code file errors: {len(code_files_failed)}" if code_files_failed else "")
         }
         
     except Exception as e:
@@ -721,10 +853,9 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         return {
             "success": False,
             "error": f"Failed to generate test cases: {error_details['message']}",
-            "project_directory": get_or_create_project_dir(),
+            "workspace_directory": get_workspace_dir(),
             "session_id": current_session.id if current_session else "No session"
         }
-
 
 @mcp.tool()
 async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
@@ -778,7 +909,8 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
         
         # Generate HTML report
         html_report = report_generator.generate_api_test_report(test_results, current_session)
-        report_file = os.path.join(OUTPUT_BASE_DIR, "reports", f"api_test_report_{current_session.id}.html")
+        reports_dir = ensure_workspace_output_dir("reports")
+        report_file = os.path.join(reports_dir, f"api_test_report_{current_session.id}.html")
         
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -885,7 +1017,8 @@ async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
         
         # Generate HTML report
         html_report = report_generator.generate_load_test_report(load_test_results, current_session)
-        report_file = os.path.join(OUTPUT_BASE_DIR, "reports", f"load_test_report_{current_session.id}.html")
+        reports_dir = ensure_workspace_output_dir("reports")
+        report_file = os.path.join(reports_dir, f"load_test_report_{current_session.id}.html")
         
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -940,16 +1073,11 @@ async def get_supported_languages() -> Dict[str, Any]:
             "error": f"Failed to get supported languages: {str(e)}"
         }
 
-
 class GenerateProjectParams(BaseModel):
-    language: Optional[str] = None  # python, typescript, javascript (defaults to session language)
-    framework: Optional[str] = None  # pytest, requests, playwright, jest, cypress, supertest (defaults to session framework)
-    project_name: Optional[str] = None  # defaults to "api-tests-{session_id}"
-    include_examples: Optional[bool] = True  # Whether to include example test files in project structure
-
-
-
-
+    language: Optional[str] = None
+    framework: Optional[str] = None
+    project_name: Optional[str] = None
+    include_examples: Optional[bool] = True
 
 @mcp.tool()
 async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any]:
@@ -958,8 +1086,8 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
     Automatically reuses test cases and parameters from the current session if available.
     
     Args:
-        language: Programming language (python, typescript, javascript) - defaults to session language
-        framework: Testing framework (pytest, playwright, jest, etc.) - defaults to session framework
+        language: Programming language (python, typescript, javascript)
+        framework: Testing framework (pytest, playwright, jest, etc.)
         project_name: Name for the generated project
         include_examples: Whether to include example test files
     
@@ -1286,7 +1414,6 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
             "project_directory": get_or_create_project_dir()
         }
 
-
 def _generate_setup_instructions(language: TestLanguage, framework: TestFramework, project_name: str) -> List[str]:
     """Generate setup instructions for the selected language/framework"""
     instructions = [
@@ -1388,27 +1515,50 @@ def _generate_setup_instructions(language: TestLanguage, framework: TestFramewor
     
     return instructions
 
-
 @mcp.tool()
 async def debug_file_system() -> Dict[str, Any]:
     """
-    Debug file system access and directory structure for troubleshooting.
+    Get comprehensive workspace information and file system diagnostics.
+    Shows where files will be saved without creating directories.
     
     Returns:
-        Dictionary with file system diagnostic information
+        Dictionary with workspace information and file system diagnostic details
     """
     try:
         workspace_dir = get_workspace_dir()
-        output_base = os.path.join(workspace_dir, "output")
+        
+        # Check for existing output directory patterns WITHOUT creating them
+        possible_output_dirs = ["output", "generated", "api-test-output", "mcp-output"]
+        existing_output_dir = None
+        
+        for output_dir_name in possible_output_dirs:
+            potential_output = os.path.join(workspace_dir, output_dir_name)
+            if os.path.exists(potential_output) and os.path.isdir(potential_output):
+                existing_output_dir = potential_output
+                break
+        
+        # Determine where directories would be created (without creating them)
+        if existing_output_dir:
+            output_base = existing_output_dir
+            scenarios_dir = os.path.join(output_base, "scenarios")
+            test_cases_dir = os.path.join(output_base, "test_cases") 
+            reports_dir = os.path.join(output_base, "reports")
+            projects_dir = os.path.join(output_base, "generated_projects")
+        else:
+            output_base = os.path.join(workspace_dir, "output")  # Default choice
+            scenarios_dir = os.path.join(output_base, "scenarios")
+            test_cases_dir = os.path.join(output_base, "test_cases")
+            reports_dir = os.path.join(output_base, "reports") 
+            projects_dir = os.path.join(output_base, "generated_projects")
         
         # Check various directories
         directories_to_check = [
             ("workspace", workspace_dir),
             ("output_base", output_base),
-            ("scenarios", os.path.join(output_base, "scenarios")),
-            ("test_cases", os.path.join(output_base, "test_cases")),
-            ("reports", os.path.join(output_base, "reports")),
-            ("generated_projects", os.path.join(output_base, "generated_projects"))
+            ("scenarios", scenarios_dir),
+            ("test_cases", test_cases_dir),
+            ("reports", reports_dir),
+            ("generated_projects", projects_dir)
         ]
         
         directory_status = {}
@@ -1439,7 +1589,33 @@ async def debug_file_system() -> Dict[str, Any]:
             "current_working_directory": os.getcwd(),
             "workspace_directory": workspace_dir,
             "output_base_directory": output_base,
-            "global_output_base_dir": OUTPUT_BASE_DIR,
+            "file_locations": {
+                "scenarios": {
+                    "path": scenarios_dir,
+                    "description": "JSON files with test scenario definitions",
+                    "relative_path": os.path.relpath(scenarios_dir, workspace_dir)
+                },
+                "test_cases": {
+                    "path": test_cases_dir,
+                    "description": "JSON metadata for generated test cases",
+                    "relative_path": os.path.relpath(test_cases_dir, workspace_dir)
+                },
+                "reports": {
+                    "path": reports_dir, 
+                    "description": "HTML test execution reports",
+                    "relative_path": os.path.relpath(reports_dir, workspace_dir)
+                },
+                "generated_projects": {
+                    "path": projects_dir,
+                    "description": "Complete project structures with dependencies", 
+                    "relative_path": os.path.relpath(projects_dir, workspace_dir)
+                },
+                "test_code_files": {
+                    "path": workspace_dir,
+                    "description": "Executable test files (Python, TypeScript, JavaScript)",
+                    "relative_path": "."
+                }
+            },
             "directory_access": directory_status,
             "workspace_files": workspace_files[:20],  # Limit to first 20 files
             "output_files": output_files[:20],  # Limit to first 20 files
@@ -1448,6 +1624,12 @@ async def debug_file_system() -> Dict[str, Any]:
                 "WORKSPACE_DIR": os.environ.get('WORKSPACE_DIR'),
                 "HOME": os.environ.get('HOME'),
                 "USERPROFILE": os.environ.get('USERPROFILE')
+            },
+            "adaptive_behavior": {
+                "existing_output_directory": existing_output_dir,
+                "will_use_pattern": os.path.basename(output_base) if existing_output_dir else "output (default)",
+                "supported_patterns": possible_output_dirs,
+                "fallback_strategy": "Creates api-test-{type} directories if standard output creation fails"
             }
         }
         
@@ -1496,10 +1678,6 @@ async def get_session_status() -> Dict[str, Any]:
     
     return session_info
 
-
-
-
-
 # MCP Resources - Make HTML reports accessible
 @mcp.resource("file://reports/{report_id}")
 async def get_report(report_id: str) -> Resource:
@@ -1544,7 +1722,6 @@ async def get_report(report_id: str) -> Resource:
             mimeType="text/plain",
             text=f"Error loading report: {str(e)}"
         )
-
 
 # List available reports
 @mcp.resource("file://reports")
@@ -1596,7 +1773,6 @@ async def list_reports() -> Resource:
             text=f"Error listing reports: {str(e)}"
         )
 
-
 # MCP Prompts - Provide helpful prompts for common tasks
 @mcp.prompt()
 async def create_api_test_plan() -> Prompt:
@@ -1646,7 +1822,6 @@ Format the plan in markdown with clear sections and actionable items."""
         ]
     )
 
-
 @mcp.prompt()
 async def analyze_test_failures() -> Prompt:
     """
@@ -1685,7 +1860,6 @@ Format your analysis with clear headings and actionable recommendations."""
         ]
     )
 
-
 # Main server function
 def main():
     """Main function to run the MCP server"""
@@ -1704,7 +1878,6 @@ def main():
     
     # Run the server (FastMCP uses stdio transport by default for MCP)
     mcp.run()
-
 
 if __name__ == "__main__":
     main()
