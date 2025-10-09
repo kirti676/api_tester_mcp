@@ -790,22 +790,31 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
                     "success": False,
                     "error": "No matching scenarios found for provided IDs"
                 }
-        
+
+        # Use session's language and framework as defaults, allow override via parameters
+        session_language = current_session.preferred_language
+        session_framework = current_session.preferred_framework
+
         # Parse language and framework if provided, otherwise use session defaults
-        language = current_session.preferred_language
-        framework = current_session.preferred_framework
-        
+        language = session_language
+        framework = session_framework
+
         if params.language:
             try:
                 language = TestLanguage(params.language.lower())
+                logger.info(f"Overriding session language {session_language.value} with {language.value}")
             except ValueError:
-                pass
+                logger.warning(f"Invalid language '{params.language}', using session default: {session_language.value}")
         
         if params.framework:
             try:
                 framework = TestFramework(params.framework.lower())
+                logger.info(f"Overriding session framework {session_framework.value} with {framework.value}")
             except ValueError:
-                pass
+                logger.warning(f"Invalid framework '{params.framework}', using session default: {session_framework.value}")
+
+        language_str = language.value
+        framework_str = framework.value
 
         # Generate test cases
         base_url = current_session.env_vars.get("baseUrl", "")
@@ -891,8 +900,8 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         return {
             "success": True,
             "session_id": current_session.id,
-            "language": language.value,
-            "framework": framework.value,
+            "language": language_str,
+            "framework": framework_str,
             "test_cases_count": len(test_cases),
             "test_cases": [
                 {
