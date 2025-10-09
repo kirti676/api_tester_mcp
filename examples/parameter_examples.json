@@ -1,0 +1,136 @@
+{
+  "description": "Example parameter structures for API Tester MCP tools with default keys provided",
+  "examples": {
+    "set_env_vars": {
+      "description": "Set environment variables for API authentication and configuration - ALL KEYS ARE OPTIONAL",
+      "note": "You can provide any combination of parameters. Empty or missing keys are ignored.",
+      "example_1_minimal_baseurl_only": {
+        "baseUrl": "https://api.example.com/v1"
+      },
+      "example_2_bearer_token_only": {
+        "auth_bearer": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "example_3_api_key_with_base": {
+        "baseUrl": "https://petstore.swagger.io/v2",
+        "auth_apikey": "your-api-key-here"
+      },
+      "example_4_basic_auth": {
+        "baseUrl": "https://api.example.com",
+        "auth_basic": "dXNlcm5hbWU6cGFzc3dvcmQ=",
+        "auth_username": "username",
+        "auth_password": "password"
+      },
+      "example_5_using_variables_dict": {
+        "variables": {
+          "baseUrl": "https://custom.api.com",
+          "auth_bearer": "token123",
+          "custom_header": "custom-value"
+        }
+      },
+      "example_6_mixed_approach": {
+        "variables": {
+          "custom_var": "custom_value"
+        },
+        "baseUrl": "https://api.test.com",
+        "auth_bearer": "test-token"
+      }
+    },
+    "ingest_spec": {
+      "description": "Ingest an API specification with default parameter structure",
+      "example": {
+        "spec_type": "openapi",
+        "content": "{\"openapi\": \"3.0.0\", \"info\": {...}, \"paths\": {...}}",
+        "preferred_language": "python",
+        "preferred_framework": "requests"
+      },
+      "spec_type_options": ["openapi", "swagger", "postman"],
+      "language_options": ["python", "typescript", "javascript"],
+      "framework_options": ["pytest", "requests", "playwright", "jest", "cypress", "supertest"]
+    },
+    "generate_scenarios": {
+      "description": "Generate test scenarios with configuration options",
+      "example": {
+        "include_negative_tests": true,
+        "include_edge_cases": true
+      }
+    },
+    "generate_test_cases": {
+      "description": "Generate executable test cases from scenarios",
+      "example_1_all_scenarios": {
+        "scenario_ids": null,
+        "language": null,
+        "framework": null
+      },
+      "example_2_specific_scenarios": {
+        "scenario_ids": ["scenario_abc123", "scenario_def456"],
+        "language": "typescript",
+        "framework": "playwright"
+      }
+    },
+    "run_api_tests": {
+      "description": "Execute API tests with concurrency control",
+      "example_1_all_tests": {
+        "test_case_ids": null,
+        "max_concurrent": 10
+      },
+      "example_2_specific_tests": {
+        "test_case_ids": ["test_case_123", "test_case_456"],
+        "max_concurrent": 5
+      }
+    },
+    "run_load_tests": {
+      "description": "Execute load tests with performance parameters",
+      "example_light_load": {
+        "test_case_ids": null,
+        "duration": 30,
+        "users": 5,
+        "ramp_up": 5
+      },
+      "example_heavy_load": {
+        "test_case_ids": null,
+        "duration": 300,
+        "users": 100,
+        "ramp_up": 30
+      }
+    },
+    "generate_project_files": {
+      "description": "Generate complete project files for selected language and framework",
+      "example_python_pytest": {
+        "language": "python",
+        "framework": "pytest",
+        "project_name": "my-api-tests",
+        "include_examples": true
+      },
+      "example_typescript_playwright": {
+        "language": "typescript",
+        "framework": "playwright",
+        "project_name": "e2e-api-tests",
+        "include_examples": true
+      },
+      "example_javascript_jest": {
+        "language": "javascript",
+        "framework": "jest",
+        "project_name": "node-api-tests",
+        "include_examples": false
+      }
+    }
+  },
+  "common_workflows": {
+    "basic_workflow": [
+      "1. ingest_spec - Load your API specification",
+      "2. set_env_vars - Configure authentication and base URL",
+      "3. generate_scenarios - Create test scenarios",
+      "4. generate_test_cases - Generate executable test code",
+      "5. run_api_tests - Execute the tests",
+      "6. generate_project_files - Export as a complete project (optional)"
+    ],
+    "performance_testing_workflow": [
+      "1. ingest_spec - Load your API specification", 
+      "2. set_env_vars - Configure authentication and base URL",
+      "3. generate_scenarios - Create test scenarios",
+      "4. generate_test_cases - Generate executable test code",
+      "5. run_load_tests - Execute performance/load tests",
+      "6. Analyze results from generated reports"
+    ]
+  }
+}

@@ -295,6 +295,77 @@ console.log(suggestions.setup_instructions);
 // Provides copy-paste ready configuration examples
 ```
 
+## 🎯 Default Parameter Keys
+
+All MCP tools now provide helpful default parameter keys to guide users on what values they can set:
+
+### Environment Variables (`set_env_vars`)
+**🔑 ALL PARAMETERS ARE OPTIONAL** - Provide only what you need:
+```javascript
+// Option 1: Just the base URL
+await mcp.call("set_env_vars", {
+  baseUrl: "https://api.example.com/v1"
+});
+
+// Option 2: Just authentication
+await mcp.call("set_env_vars", {
+  auth_bearer: "your-jwt-token-here"
+});
+
+// Option 3: Multiple parameters
+await mcp.call("set_env_vars", {
+  baseUrl: "https://api.example.com/v1",
+  auth_bearer: "your-jwt-token",
+  auth_apikey: "your-api-key"
+});
+
+// Option 4: Using variables dict for custom values
+await mcp.call("set_env_vars", {
+  variables: {
+    "baseUrl": "https://api.example.com/v1",
+    "custom_header": "custom-value"
+  }
+});
+```
+
+### Language & Framework Selection
+Default values help you understand available options:
+```javascript
+// Ingest with defaults shown
+await mcp.call("ingest_spec", {
+  spec_type: "openapi",        // openapi, swagger, postman
+  content: "...",              // JSON or YAML specification content
+  preferred_language: "python", // python, typescript, javascript
+  preferred_framework: "requests" // pytest, requests, playwright, jest, cypress, supertest
+});
+
+// Project generation with defaults
+await mcp.call("generate_project_files", {
+  language: "python",          // python, typescript, javascript
+  framework: "requests",       // Framework matching the language
+  project_name: "api-tests",   // Project folder name
+  include_examples: true       // Include example test files
+});
+```
+
+### Test Execution Parameters
+Clear defaults for performance tuning:
+```javascript
+// API tests with concurrency control
+await mcp.call("run_api_tests", {
+  test_case_ids: null,        // ["test_1", "test_2"] or null for all
+  max_concurrent: 10          // Number of concurrent requests (1-50)
+});
+
+// Load tests with performance parameters  
+await mcp.call("run_load_tests", {
+  test_case_ids: null,        // ["test_1", "test_2"] or null for all
+  duration: 60,               // Test duration in seconds
+  users: 10,                  // Number of concurrent virtual users
+  ramp_up: 10                 // Ramp up time in seconds
+});
+```
+
 ## 🔧 Configuration Example
 
 ```javascript

@@ -42,37 +42,45 @@ os.makedirs("output/test_cases", exist_ok=True)
 
 # Pydantic models for tool parameters
 class IngestSpecParams(BaseModel):
-    spec_type: str
-    content: str
-    preferred_language: Optional[str] = "python"
-    preferred_framework: Optional[str] = "requests"
+    spec_type: Optional[str] = "openapi"  # openapi, swagger, postman
+    content: str  # JSON or YAML specification content (required)
+    preferred_language: Optional[str] = "python"  # python, typescript, javascript  
+    preferred_framework: Optional[str] = "requests"  # pytest, requests, playwright, jest, cypress, supertest
 
 
 class SetEnvVarsParams(BaseModel):
-    variables: Dict[str, str]
+    variables: Dict[str, str] = {}
+    
+    # Optional convenience fields that get merged into variables if provided
+    baseUrl: Optional[str] = None
+    auth_bearer: Optional[str] = None
+    auth_apikey: Optional[str] = None
+    auth_basic: Optional[str] = None
+    auth_username: Optional[str] = None
+    auth_password: Optional[str] = None
 
 
 class GenerateScenariosParams(BaseModel):
-    include_negative_tests: bool = True
-    include_edge_cases: bool = True
+    include_negative_tests: bool = True  # Generate failure scenarios (invalid data, unauthorized access)
+    include_edge_cases: bool = True  # Generate boundary and edge case scenarios
 
 
 class GenerateTestCasesParams(BaseModel):
-    scenario_ids: Optional[List[str]] = None
-    language: Optional[str] = None
-    framework: Optional[str] = None
+    scenario_ids: Optional[List[str]] = None  # ["scenario_1", "scenario_2"] or None for all
+    language: Optional[str] = None  # python, typescript, javascript (uses session default if None)
+    framework: Optional[str] = None  # pytest, requests, playwright, jest, cypress, supertest (uses session default if None)
 
 
 class RunApiTestsParams(BaseModel):
-    test_case_ids: Optional[List[str]] = None
-    max_concurrent: int = 10
+    test_case_ids: Optional[List[str]] = None  # ["test_case_1", "test_case_2"] or None for all
+    max_concurrent: int = 10  # Number of concurrent requests (1-50)
 
 
 class RunLoadTestsParams(BaseModel):
-    test_case_ids: Optional[List[str]] = None
-    duration: int = 60
-    users: int = 10
-    ramp_up: int = 10
+    test_case_ids: Optional[List[str]] = None  # ["test_case_1", "test_case_2"] or None for all
+    duration: int = 60  # Test duration in seconds
+    users: int = 10  # Number of concurrent virtual users
+    ramp_up: int = 10  # Ramp up time in seconds
 
 
 # MCP Tools
@@ -94,21 +102,31 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
     global current_session
     
     try:
-        # Validate spec type
-        if params.spec_type.lower() not in ['openapi', 'swagger', 'postman']:
+        # Log provided parameters
+        logger.info(f"Ingesting specification - spec_type: {params.spec_type}, "
+                   f"preferred_language: {params.preferred_language}, "
+                   f"preferred_framework: {params.preferred_framework}")
+        
+        # Use provided spec_type or auto-detect
+        spec_type_to_use = params.spec_type or "openapi"
+        
+        # Auto-detect spec type if needed or validate provided type
+        detected_type = validate_spec_type(params.content)
+        if detected_type:
+            if params.spec_type and detected_type != params.spec_type.lower():
+                logger.warning(f"Detected spec type '{detected_type}' differs from provided '{params.spec_type}', using detected type")
+            spec_type_to_use = detected_type
+        
+        # Validate final spec type
+        if spec_type_to_use.lower() not in ['openapi', 'swagger', 'postman']:
             return {
                 "success": False,
-                "error": f"Unsupported specification type: {params.spec_type}. Supported types: openapi, swagger, postman"
+                "error": f"Unsupported specification type: {spec_type_to_use}. Supported types: openapi, swagger, postman"
             }
-        
-        # Auto-detect spec type if needed
-        detected_type = validate_spec_type(params.content)
-        if detected_type and detected_type != params.spec_type.lower():
-            logger.warning(f"Detected spec type '{detected_type}' differs from provided '{params.spec_type}'")
         
         # Parse specification
         parser = SpecificationParser()
-        spec_type = SpecType(params.spec_type.lower())
+        spec_type = SpecType(spec_type_to_use.lower())
         endpoints = parser.parse(params.content, spec_type)
         
         if not endpoints:
@@ -121,16 +139,26 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
         spec_data = json.loads(params.content) if params.content.strip().startswith('{') else yaml.safe_load(params.content)
         env_analysis = analyze_required_env_vars(spec_data, spec_type, parser.base_url)
         
-        # Parse language and framework preferences
-        try:
-            preferred_language = TestLanguage(params.preferred_language.lower())
-        except ValueError:
-            preferred_language = TestLanguage.PYTHON
+        # Parse language and framework preferences with logging
+        preferred_language = TestLanguage.PYTHON  # default
+        if params.preferred_language:
+            try:
+                preferred_language = TestLanguage(params.preferred_language.lower())
+                logger.info(f"Using preferred language: {preferred_language.value}")
+            except ValueError:
+                logger.warning(f"Invalid language '{params.preferred_language}', using default: python")
+        else:
+            logger.info("No preferred language specified, using default: python")
             
-        try:
-            preferred_framework = TestFramework(params.preferred_framework.lower())
-        except ValueError:
-            preferred_framework = TestFramework.REQUESTS
+        preferred_framework = TestFramework.REQUESTS  # default
+        if params.preferred_framework:
+            try:
+                preferred_framework = TestFramework(params.preferred_framework.lower())
+                logger.info(f"Using preferred framework: {preferred_framework.value}")
+            except ValueError:
+                logger.warning(f"Invalid framework '{params.preferred_framework}', using default: requests")
+        else:
+            logger.info("No preferred framework specified, using default: requests")
 
         # Create new session
         session_id = generate_id()
@@ -195,8 +223,23 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
     Set environment variables for authentication and configuration.
     
     Args:
-        variables: Dictionary of environment variables to set
-                  Common variables: baseUrl, auth_bearer, auth_apikey, auth_basic
+        ALL PARAMETERS ARE OPTIONAL - Provide only the values you need!
+        
+        Individual convenience fields:
+        - baseUrl: API base URL (e.g., "https://api.example.com/v1")
+        - auth_bearer: Bearer/JWT token (e.g., "eyJhbG...")
+        - auth_apikey: API key (e.g., "your-api-key-here")
+        - auth_basic: Base64 encoded credentials (e.g., "dXNlcjpwYXNzd29yZA==")
+        - auth_username: Username for basic auth
+        - auth_password: Password for basic auth
+        
+        Alternative approach:
+        - variables: Dictionary of any custom environment variables
+        
+        Examples:
+        - Just base URL: {"baseUrl": "https://api.example.com"}
+        - Just auth token: {"auth_bearer": "your-token"}
+        - Mixed: {"baseUrl": "...", "auth_bearer": "...", "variables": {"custom": "value"}}
     
     Returns:
         Dictionary with operation status and current variables
@@ -210,9 +253,41 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
         }
     
     try:
+        # Merge optional individual fields into variables dict
+        variables_to_set = dict(params.variables)  # Start with explicit variables dict
+        
+        # Add individual fields if provided (non-None and non-empty)
+        optional_fields = {
+            "baseUrl": params.baseUrl,
+            "auth_bearer": params.auth_bearer, 
+            "auth_apikey": params.auth_apikey,
+            "auth_basic": params.auth_basic,
+            "auth_username": params.auth_username,
+            "auth_password": params.auth_password
+        }
+        
+        for key, value in optional_fields.items():
+            if value is not None and value.strip():  # Only add if provided and not empty
+                variables_to_set[key] = value
+        
+        # Log what parameters were provided
+        provided_keys = list(variables_to_set.keys())
+        if provided_keys:
+            logger.info(f"Setting environment variables: {provided_keys}")
+        else:
+            logger.info("No environment variables provided, keeping existing values")
+            return {
+                "success": True,
+                "session_id": current_session.id,
+                "variables_set": [],
+                "message": "No variables provided, existing configuration unchanged",
+                "current_variables": {k: "***" if "auth" in k.lower() or "password" in k.lower() or "secret" in k.lower() else v 
+                                   for k, v in current_session.env_vars.items()}
+            }
+        
         # Validate URLs if present
-        if "baseUrl" in params.variables:
-            base_url = params.variables["baseUrl"]
+        if "baseUrl" in variables_to_set:
+            base_url = variables_to_set["baseUrl"]
             if base_url and not validate_url(base_url):
                 return {
                     "success": False,
@@ -220,14 +295,15 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
                 }
         
         # Merge with existing variables
-        current_session.env_vars = merge_env_vars(current_session.env_vars, params.variables)
+        current_session.env_vars = merge_env_vars(current_session.env_vars, variables_to_set)
         
-        logger.info(f"Updated environment variables for session {current_session.id}")
+        logger.info(f"Successfully updated {len(provided_keys)} environment variables for session {current_session.id}")
         
         return {
             "success": True,
             "session_id": current_session.id,
-            "variables_set": list(params.variables.keys()),
+            "variables_set": provided_keys,
+            "variables_updated": len(provided_keys),
             "current_variables": {k: "***" if "auth" in k.lower() or "password" in k.lower() or "secret" in k.lower() else v 
                                for k, v in current_session.env_vars.items()}
         }
@@ -262,6 +338,10 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
         }
     
     try:
+        # Log provided parameters
+        logger.info(f"Generating scenarios - include_negative_tests: {params.include_negative_tests}, "
+                   f"include_edge_cases: {params.include_edge_cases}")
+        
         # Parse endpoints from session
         parser = SpecificationParser()
         endpoints = parser.parse(json.dumps(current_session.spec_content), current_session.spec_type)
@@ -474,6 +554,10 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
         }
     
     try:
+        # Log provided parameters
+        logger.info(f"Running API tests - test_case_ids: {params.test_case_ids}, "
+                   f"max_concurrent: {params.max_concurrent}")
+        
         # Filter test cases if specific IDs provided
         test_cases_to_run = current_session.test_cases
         if params.test_case_ids:
@@ -481,12 +565,15 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
                 test_case for test_case in current_session.test_cases
                 if test_case.id in params.test_case_ids
             ]
+            logger.info(f"Filtered to {len(test_cases_to_run)} specific test cases")
             
             if not test_cases_to_run:
                 return {
                     "success": False,
                     "error": "No matching test cases found for provided IDs"
                 }
+        else:
+            logger.info(f"Running all {len(test_cases_to_run)} available test cases")
         
         # Execute tests
         current_session.status = StatusType.RUNNING
@@ -769,10 +856,10 @@ async def get_supported_languages() -> Dict[str, Any]:
 
 
 class GenerateProjectParams(BaseModel):
-    language: str
-    framework: str
+    language: Optional[str] = "python"  # python, typescript, javascript
+    framework: Optional[str] = "requests"  # pytest, requests, playwright, jest, cypress, supertest
     project_name: Optional[str] = "api-tests"
-    include_examples: bool = True
+    include_examples: Optional[bool] = True
 
 
 @mcp.tool()
@@ -792,14 +879,26 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
     global current_session
     
     try:
+        # Log provided parameters
+        logger.info(f"Generating project files - language: {params.language}, "
+                   f"framework: {params.framework}, project_name: {params.project_name}, "
+                   f"include_examples: {params.include_examples}")
+        
+        # Use defaults for optional parameters
+        language_str = params.language or "python"
+        framework_str = params.framework or "requests"
+        project_name = params.project_name or "api-tests"
+        include_examples = params.include_examples if params.include_examples is not None else True
+        
         # Validate language and framework
         try:
-            language_enum = TestLanguage(params.language.lower())
-            framework_enum = TestFramework(params.framework.lower())
+            language_enum = TestLanguage(language_str.lower())
+            framework_enum = TestFramework(framework_str.lower())
+            logger.info(f"Using language: {language_enum.value}, framework: {framework_enum.value}")
         except ValueError as e:
             return {
                 "success": False,
-                "error": f"Unsupported language/framework combination: {params.language}/{params.framework}"
+                "error": f"Unsupported language/framework combination: {language_str}/{framework_str}"
             }
         
         # Generate package files
@@ -807,7 +906,7 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
         
         # Generate example test files if requested and session exists
         example_files = {}
-        if params.include_examples and current_session and current_session.test_cases:
+        if include_examples and current_session and current_session.test_cases:
             try:
                 generator = TestCaseGenerator(
                     base_url=current_session.env_vars.get("baseUrl", ""),
@@ -847,11 +946,11 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
                 logger.warning(f"Failed to generate example files: {str(e)}")
         
         # Generate setup instructions
-        setup_instructions = _generate_setup_instructions(language_enum, framework_enum, params.project_name)
+        setup_instructions = _generate_setup_instructions(language_enum, framework_enum, project_name)
         
         # Save files to output directory if possible
         import os
-        project_dir = f"output/generated_projects/{params.project_name}"
+        project_dir = f"output/generated_projects/{project_name}"
         os.makedirs(project_dir, exist_ok=True)
         
         saved_files = []
@@ -869,9 +968,9 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
         
         return {
             "success": True,
-            "language": params.language,
-            "framework": params.framework,
-            "project_name": params.project_name,
+            "language": language_str,
+            "framework": framework_str,
+            "project_name": project_name,
             "project_directory": project_dir,
             "generated_files": {
                 "package_files": list(package_files.keys()),
