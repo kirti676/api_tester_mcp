@@ -1,9 +1,11 @@
 {
   "name": "@kirti676/api-tester-mcp",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Multi-language MCP server for API testing with TypeScript/Playwright, JavaScript/Jest, Python/pytest support",
   "main": "cli.js",
-  "bin": "./cli.js",
+  "bin": {
+    "api-tester-mcp": "cli.js"
+  },
   "scripts": {
     "start": "node cli.js",
     "build": "echo 'No build needed'",
@@ -31,7 +33,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kirti676/api_tester_mcp.git"
+    "url": "git+https://github.com/kirti676/api_tester_mcp.git"
   },
   "bugs": {
     "url": "https://github.com/kirti676/api_tester_mcp/issues"
