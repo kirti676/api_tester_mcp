@@ -280,8 +280,6 @@ class GenerateScenariosParams(BaseModel):
 
 class GenerateTestCasesParams(BaseModel):
     scenario_ids: Optional[List[str]] = None
-    language: Optional[str] = None
-    framework: Optional[str] = None
 
 
 class RunApiTestsParams(BaseModel):
@@ -749,18 +747,17 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
 @mcp.tool()
 async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]:
     """
-    Generate executable test cases from scenarios in the specified language and framework.
+    Generate executable test cases from scenarios using the language and framework specified in ingest_spec.
     
     NOTE: This function automatically saves the generated test cases to both the output 
     directory and the current workspace for easy access.
     
     Args:
         scenario_ids: Optional list of specific scenario IDs to generate test cases for
-        language: Programming language (python, typescript, javascript)
-        framework: Testing framework (pytest, playwright, jest, etc.)
     
     Returns:
-        Dictionary with generated test cases information including generated code and file paths
+        Dictionary with generated test cases information including generated code and file paths.
+        Uses the preferred_language and preferred_framework from the active session (set during ingest_spec).
     """
     global current_session
     
@@ -791,27 +788,9 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
                     "error": "No matching scenarios found for provided IDs"
                 }
 
-        # Use session's language and framework as defaults, allow override via parameters
-        session_language = current_session.preferred_language
-        session_framework = current_session.preferred_framework
-
-        # Parse language and framework if provided, otherwise use session defaults
-        language = session_language
-        framework = session_framework
-
-        if params.language:
-            try:
-                language = TestLanguage(params.language.lower())
-                logger.info(f"Overriding session language {session_language.value} with {language.value}")
-            except ValueError:
-                logger.warning(f"Invalid language '{params.language}', using session default: {session_language.value}")
-        
-        if params.framework:
-            try:
-                framework = TestFramework(params.framework.lower())
-                logger.info(f"Overriding session framework {session_framework.value} with {framework.value}")
-            except ValueError:
-                logger.warning(f"Invalid framework '{params.framework}', using session default: {session_framework.value}")
+        # Use session's preferred language and framework (set during ingest_spec)
+        language = current_session.preferred_language
+        framework = current_session.preferred_framework
 
         language_str = language.value
         framework_str = framework.value
@@ -1158,25 +1137,22 @@ async def get_supported_languages() -> Dict[str, Any]:
         }
 
 class GenerateProjectParams(BaseModel):
-    language: Optional[str] = None
-    framework: Optional[str] = None
     project_name: Optional[str] = None
     include_examples: Optional[bool] = True
 
 @mcp.tool()
 async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any]:
     """
-    Generate complete project files for the selected language and framework.
+    Generate complete project files using the language and framework specified in ingest_spec.
     Automatically reuses test cases and parameters from the current session if available.
     
     Args:
-        language: Programming language (python, typescript, javascript)
-        framework: Testing framework (pytest, playwright, jest, etc.)
         project_name: Name for the generated project
         include_examples: Whether to include example test files
     
     Returns:
-        Dictionary with generated project files and setup instructions
+        Dictionary with generated project files and setup instructions.
+        Uses the preferred_language and preferred_framework from the active session (set during ingest_spec).
     """
     global current_session
     
@@ -1193,27 +1169,9 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
         }
     
     try:
-        # Use session's language and framework as defaults, allow override via parameters
-        session_language = current_session.preferred_language
-        session_framework = current_session.preferred_framework
-        
-        # Override with provided parameters if specified, otherwise use session defaults
-        language_enum = session_language
-        framework_enum = session_framework
-        
-        if params.language:
-            try:
-                language_enum = TestLanguage(params.language.lower())
-                logger.info(f"Overriding session language {session_language.value} with {language_enum.value}")
-            except ValueError:
-                logger.warning(f"Invalid language '{params.language}', using session default: {session_language.value}")
-        
-        if params.framework:
-            try:
-                framework_enum = TestFramework(params.framework.lower())
-                logger.info(f"Overriding session framework {session_framework.value} with {framework_enum.value}")
-            except ValueError:
-                logger.warning(f"Invalid framework '{params.framework}', using session default: {session_framework.value}")
+        # Use session's preferred language and framework (set during ingest_spec)
+        language_enum = current_session.preferred_language
+        framework_enum = current_session.preferred_framework
         
         language_str = language_enum.value
         framework_str = framework_enum.value

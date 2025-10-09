@@ -5,9 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# Changelog
+## [1.4.6] - 2025-10-10
 
-All notable changes to this project will be documented in this file.
+### Changed
+- **BREAKING:** Removed `language` and `framework` parameters from `generate_test_cases()` and `generate_project_files()` tools
+- Language and framework are now exclusively determined by the `preferred_language` and `preferred_framework` values set during `ingest_spec()`
+- Users can no longer override language/framework choices in downstream tools, ensuring consistency across the entire API testing workflow
+
+### Improved
+- Simplified tool interfaces by removing redundant parameter options
+- Enhanced workflow consistency by enforcing language/framework choices made during specification ingestion
+- Updated tool documentation to clearly indicate that language and framework are determined by the active session
 
 ## [1.4.1] - 2024-10-09
 
