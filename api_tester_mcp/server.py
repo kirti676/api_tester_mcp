@@ -1,6 +1,5 @@
 """Main MCP server implementation using FastMCP"""
 
-import asyncio
 import json
 import yaml
 import os
@@ -157,26 +156,20 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
         spec_data = json.loads(params.content) if params.content.strip().startswith('{') else yaml.safe_load(params.content)
         env_analysis = analyze_required_env_vars(spec_data, spec_type, parser.base_url)
         
-        # Parse language and framework preferences with logging
+        # Parse language and framework preferences
         preferred_language = TestLanguage.PYTHON  # default
         if params.preferred_language:
             try:
                 preferred_language = TestLanguage(params.preferred_language.lower())
-                logger.info(f"Using preferred language: {preferred_language.value}")
             except ValueError:
                 logger.warning(f"Invalid language '{params.preferred_language}', using default: python")
-        else:
-            logger.info("No preferred language specified, using default: python")
             
         preferred_framework = TestFramework.REQUESTS  # default
         if params.preferred_framework:
             try:
                 preferred_framework = TestFramework(params.preferred_framework.lower())
-                logger.info(f"Using preferred framework: {preferred_framework.value}")
             except ValueError:
                 logger.warning(f"Invalid framework '{params.preferred_framework}', using default: requests")
-        else:
-            logger.info("No preferred framework specified, using default: requests")
 
         # Create new session
         session_id = generate_id()
@@ -234,11 +227,13 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
             "error": f"Failed to parse specification: {error_details['message']}"
         }
 
-
 @mcp.tool()
 async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
     """
     Set environment variables for authentication and configuration.
+    
+    NOTE: This function automatically calls get_env_var_suggestions() first to ensure 
+    proper validation and provide context about required/suggested variables.
     
     Args:
         ALL PARAMETERS ARE OPTIONAL - Provide only the values you need!
@@ -271,6 +266,11 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
         }
     
     try:
+        # Always call get_env_var_suggestions before setting variables
+        suggestions_result = await get_env_var_suggestions()
+        if not suggestions_result.get("success", False):
+            logger.warning(f"Failed to get env var suggestions: {suggestions_result.get('error', 'Unknown error')}")
+        
         # Merge optional individual fields into variables dict
         variables_to_set = dict(params.variables)  # Start with explicit variables dict
         
@@ -288,12 +288,9 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
             if value is not None and value.strip():  # Only add if provided and not empty
                 variables_to_set[key] = value
         
-        # Log what parameters were provided
+        # Check what parameters were provided
         provided_keys = list(variables_to_set.keys())
-        if provided_keys:
-            logger.info(f"Setting environment variables: {provided_keys}")
-        else:
-            logger.info("No environment variables provided, keeping existing values")
+        if not provided_keys:
             return {
                 "success": True,
                 "session_id": current_session.id,
@@ -315,8 +312,6 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
         # Merge with existing variables
         current_session.env_vars = merge_env_vars(current_session.env_vars, variables_to_set)
         
-        logger.info(f"Successfully updated {len(provided_keys)} environment variables for session {current_session.id}")
-        
         return {
             "success": True,
             "session_id": current_session.id,
@@ -334,18 +329,20 @@ async def set_env_vars(params: SetEnvVarsParams) -> Dict[str, Any]:
             "error": f"Failed to set variables: {error_details['message']}"
         }
 
-
 @mcp.tool()
 async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
     """
     Generate test scenarios from the ingested API specification.
+    
+    NOTE: This function automatically saves the generated scenarios to both the output 
+    directory and the current workspace for easy access.
     
     Args:
         include_negative_tests: Whether to include negative test scenarios
         include_edge_cases: Whether to include edge case scenarios
     
     Returns:
-        Dictionary with generated scenarios information
+        Dictionary with generated scenarios information including file paths
     """
     global current_session
     
@@ -356,10 +353,6 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
         }
     
     try:
-        # Log provided parameters
-        logger.info(f"Generating scenarios - include_negative_tests: {params.include_negative_tests}, "
-                   f"include_edge_cases: {params.include_edge_cases}")
-        
         # Parse endpoints from session
         parser = SpecificationParser()
         endpoints = parser.parse(json.dumps(current_session.spec_content), current_session.spec_type)
@@ -388,15 +381,19 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
         # Save scenarios to session
         current_session.scenarios = scenarios
         
-        # Save scenarios to file
+        # Save scenarios to output directory
         scenarios_file = os.path.join(OUTPUT_BASE_DIR, "scenarios", f"scenarios_{current_session.id}.json")
+        scenarios_data = [scenario.model_dump() for scenario in scenarios]
         with open(scenarios_file, 'w') as f:
-            scenarios_data = [scenario.model_dump() for scenario in scenarios]
+            json.dump(scenarios_data, f, indent=2)
+        
+        # Also save scenarios to current workspace
+        workspace_dir = get_workspace_dir()
+        workspace_scenarios_file = os.path.join(workspace_dir, f"scenarios_{current_session.id}.json")
+        with open(workspace_scenarios_file, 'w', encoding='utf-8') as f:
             json.dump(scenarios_data, f, indent=2)
         
         progress.finish()
-        
-        logger.info(f"Generated {len(scenarios)} scenarios for session {current_session.id}")
         
         return {
             "success": True,
@@ -413,7 +410,9 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
                 }
                 for scenario in scenarios
             ],
-            "scenarios_file": scenarios_file
+            "scenarios_file": scenarios_file,
+            "workspace_scenarios_file": workspace_scenarios_file,
+            "workspace_directory": workspace_dir
         }
         
     except Exception as e:
@@ -424,11 +423,13 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
             "error": f"Failed to generate scenarios: {error_details['message']}"
         }
 
-
 @mcp.tool()
 async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]:
     """
     Generate executable test cases from scenarios in the specified language and framework.
+    
+    NOTE: This function automatically saves the generated test cases to both the output 
+    directory and the current workspace for easy access.
     
     Args:
         scenario_ids: Optional list of specific scenario IDs to generate test cases for.
@@ -437,7 +438,7 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         framework: Testing framework (pytest, playwright, jest, etc.). Uses session default if not provided.
     
     Returns:
-        Dictionary with generated test cases information including generated code
+        Dictionary with generated test cases information including generated code and file paths
     """
     global current_session
     
@@ -500,15 +501,19 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         # Save test cases to session
         current_session.test_cases = test_cases
         
-        # Save test cases to file
+        # Save test cases to output directory
         test_cases_file = os.path.join(OUTPUT_BASE_DIR, "test_cases", f"test_cases_{current_session.id}.json")
+        test_cases_data = [test_case.model_dump() for test_case in test_cases]
         with open(test_cases_file, 'w') as f:
-            test_cases_data = [test_case.model_dump() for test_case in test_cases]
+            json.dump(test_cases_data, f, indent=2)
+        
+        # Also save test cases to current workspace
+        workspace_dir = get_workspace_dir()
+        workspace_test_cases_file = os.path.join(workspace_dir, f"test_cases_{current_session.id}.json")
+        with open(workspace_test_cases_file, 'w', encoding='utf-8') as f:
             json.dump(test_cases_data, f, indent=2)
         
         progress.finish()
-        
-        logger.info(f"Generated {len(test_cases)} test cases for session {current_session.id}")
         
         return {
             "success": True,
@@ -532,6 +537,8 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
                 for test_case in test_cases
             ],
             "test_cases_file": test_cases_file,
+            "workspace_test_cases_file": workspace_test_cases_file,
+            "workspace_directory": workspace_dir,
             "generated_code_available": all(tc.generated_code for tc in test_cases)
         }
         
@@ -541,69 +548,6 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         return {
             "success": False,
             "error": f"Failed to generate test cases: {error_details['message']}"
-        }
-
-
-
-
-
-@mcp.tool()
-async def save_scenarios_to_workspace() -> Dict[str, Any]:
-    """
-    Save test scenarios as readable JSON files directly to the current workspace.
-    
-    Returns:
-        Dictionary with information about saved scenario files
-    """
-    global current_session
-    
-    if not current_session:
-        return {
-            "success": False,
-            "error": "No active session. Please ingest a specification first."
-        }
-    
-    if not current_session.scenarios:
-        return {
-            "success": False,
-            "error": "No scenarios available. Please generate scenarios first."
-        }
-    
-    try:
-        workspace_dir = get_workspace_dir()
-        
-        # Save scenarios as JSON
-        scenarios_file = os.path.join(workspace_dir, f"scenarios_{current_session.id}.json")
-        with open(scenarios_file, 'w', encoding='utf-8') as f:
-            scenarios_data = [scenario.model_dump() for scenario in current_session.scenarios]
-            json.dump(scenarios_data, f, indent=2)
-        
-        # Save test cases as JSON if available  
-        test_cases_file = None
-        if current_session.test_cases:
-            test_cases_file = os.path.join(workspace_dir, f"test_cases_{current_session.id}.json")
-            with open(test_cases_file, 'w', encoding='utf-8') as f:
-                test_cases_data = [test_case.model_dump() for test_case in current_session.test_cases]
-                json.dump(test_cases_data, f, indent=2)
-        
-        logger.info(f"Saved scenarios and test cases to workspace: {workspace_dir}")
-        
-        return {
-            "success": True,
-            "session_id": current_session.id,
-            "workspace_directory": workspace_dir,
-            "scenarios_file": scenarios_file,
-            "test_cases_file": test_cases_file,
-            "scenarios_count": len(current_session.scenarios),
-            "test_cases_count": len(current_session.test_cases) if current_session.test_cases else 0
-        }
-        
-    except Exception as e:
-        error_details = extract_error_details(e)
-        logger.error(f"Failed to save to workspace: {error_details}")
-        return {
-            "success": False,
-            "error": f"Failed to save to workspace: {error_details['message']}"
         }
 
 
@@ -635,10 +579,6 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
         }
     
     try:
-        # Log provided parameters
-        logger.info(f"Running API tests - test_case_ids: {params.test_case_ids}, "
-                   f"max_concurrent: {params.max_concurrent}")
-        
         # Filter test cases if specific IDs provided
         test_cases_to_run = current_session.test_cases
         if params.test_case_ids:
@@ -646,21 +586,16 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
                 test_case for test_case in current_session.test_cases
                 if test_case.id in params.test_case_ids
             ]
-            logger.info(f"Filtered to {len(test_cases_to_run)} specific test cases")
             
             if not test_cases_to_run:
                 return {
                     "success": False,
                     "error": "No matching test cases found for provided IDs"
                 }
-        else:
-            logger.info(f"Running all {len(test_cases_to_run)} available test cases")
         
         # Execute tests
         current_session.status = StatusType.RUNNING
         executor = TestExecutor(max_concurrent=params.max_concurrent)
-        
-        logger.info(f"Starting execution of {len(test_cases_to_run)} test cases")
         test_results = await executor.execute_tests(test_cases_to_run)
         
         current_session.status = StatusType.COMPLETED
@@ -678,8 +613,6 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
         passed_tests = sum(1 for r in test_results if r.status == "passed")
         failed_tests = sum(1 for r in test_results if r.status == "failed")
         total_time = sum(r.execution_time for r in test_results)
-        
-        logger.info(f"Test execution completed: {passed_tests}/{total_tests} passed")
         
         return {
             "success": True,
@@ -715,7 +648,6 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
             "success": False,
             "error": f"Failed to run tests: {error_details['message']}"
         }
-
 
 @mcp.tool()
 async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
@@ -768,7 +700,6 @@ async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
             ramp_up=params.ramp_up
         )
         
-        logger.info(f"Starting load test: {params.users} users, {params.duration}s duration")
         load_test_results = await executor.run_load_test(test_cases_to_run)
         
         if "error" in load_test_results:
@@ -784,8 +715,6 @@ async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(html_report)
         
-        logger.info(f"Load test completed: {load_test_results['summary']['requests_per_second']:.1f} req/s")
-        
         return {
             "success": True,
             "session_id": current_session.id,
@@ -800,7 +729,6 @@ async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
             "success": False,
             "error": f"Failed to run load tests: {error_details['message']}"
         }
-
 
 @mcp.tool()
 async def get_env_var_suggestions() -> Dict[str, Any]:
@@ -899,7 +827,6 @@ async def get_env_var_suggestions() -> Dict[str, Any]:
             "error": f"Failed to analyze environment variables: {error_details['message']}"
         }
 
-
 @mcp.tool()
 async def get_supported_languages() -> Dict[str, Any]:
     """
@@ -943,138 +870,7 @@ class GenerateProjectParams(BaseModel):
     include_examples: Optional[bool] = True
 
 
-class GenerateTestFilesParams(BaseModel):
-    language: Optional[str] = None  # python, typescript, javascript (uses session default if None)
-    framework: Optional[str] = None  # pytest, requests, playwright, jest, cypress, supertest (uses session default if None)
-    file_name: Optional[str] = None  # Custom file name (optional)
 
-
-@mcp.tool()
-async def generate_test_files_to_workspace(params: GenerateTestFilesParams) -> Dict[str, Any]:
-    """
-    Generate test files directly in the current workspace directory.
-    
-    Args:
-        language: Programming language (python, typescript, javascript). Uses session default if not provided.
-        framework: Testing framework (pytest, playwright, jest, etc.). Uses session default if not provided.
-        file_name: Custom file name (optional). If not provided, uses a default naming pattern.
-    
-    Returns:
-        Dictionary with information about generated test files in the workspace
-    """
-    global current_session
-    
-    if not current_session:
-        return {
-            "success": False,
-            "error": "No active session. Please ingest a specification first."
-        }
-    
-    if not current_session.test_cases:
-        return {
-            "success": False,
-            "error": "No test cases available. Please generate test cases first."
-        }
-    
-    try:
-        # Parse language and framework if provided, otherwise use session defaults
-        language = current_session.preferred_language
-        framework = current_session.preferred_framework
-        
-        if params.language:
-            try:
-                language = TestLanguage(params.language.lower())
-            except ValueError:
-                return {
-                    "success": False,
-                    "error": f"Unsupported language: {params.language}"
-                }
-        
-        if params.framework:
-            try:
-                framework = TestFramework(params.framework.lower())
-            except ValueError:
-                return {
-                    "success": False,
-                    "error": f"Unsupported framework: {params.framework}"
-                }
-        
-        # Generate test code
-        generator = TestCaseGenerator(
-            base_url=current_session.env_vars.get("baseUrl", ""),
-            env_vars=current_session.env_vars,
-            language=language,
-            framework=framework
-        )
-        
-        session_info = {
-            'id': current_session.id,
-            'base_url': current_session.env_vars.get("baseUrl", ""),
-            'auth_token': current_session.env_vars.get('auth_bearer', ''),
-        }
-        
-        code_generator = generator.code_generator
-        test_code = code_generator.generate_test_code(current_session.test_cases, session_info)
-        
-        # Determine file name and path
-        workspace_dir = get_workspace_dir()
-        
-        if params.file_name:
-            # Use custom file name
-            file_name = params.file_name
-            # Ensure proper extension
-            if not any(file_name.endswith(ext) for ext in ['.py', '.ts', '.js']):
-                if language == TestLanguage.PYTHON:
-                    file_name += '.py'
-                elif language == TestLanguage.TYPESCRIPT:
-                    file_name += '.ts'
-                elif language == TestLanguage.JAVASCRIPT:
-                    file_name += '.js'
-        else:
-            # Generate default file name based on language/framework
-            if language == TestLanguage.PYTHON:
-                if framework == TestFramework.PYTEST:
-                    file_name = f"test_api_{current_session.id}.py"
-                else:
-                    file_name = f"api_tests_{current_session.id}.py"
-            elif language == TestLanguage.TYPESCRIPT:
-                if framework == TestFramework.PLAYWRIGHT:
-                    file_name = f"api_tests_{current_session.id}.spec.ts"
-                else:
-                    file_name = f"api_tests_{current_session.id}.test.ts"
-            elif language == TestLanguage.JAVASCRIPT:
-                if framework == TestFramework.CYPRESS:
-                    file_name = f"api_tests_{current_session.id}.cy.js"
-                else:
-                    file_name = f"api_tests_{current_session.id}.test.js"
-        
-        test_file_path = os.path.join(workspace_dir, file_name)
-        
-        # Write the test file to workspace
-        with open(test_file_path, 'w', encoding='utf-8') as f:
-            f.write(test_code)
-        
-        logger.info(f"Generated test file in workspace: {test_file_path}")
-        
-        return {
-            "success": True,
-            "session_id": current_session.id,
-            "language": language.value,
-            "framework": framework.value,
-            "file_name": file_name,
-            "file_path": test_file_path,
-            "workspace_directory": workspace_dir,
-            "test_cases_count": len(current_session.test_cases),
-            "file_content": test_code[:500] + "..." if len(test_code) > 500 else test_code
-        }
-        
-    except Exception as e:
-        error_details = extract_error_details(e)
-        logger.error(f"Failed to generate test files to workspace: {error_details}")
-        return {
-            "success": False,
-            "error": f"Failed to generate test files: {error_details['message']}"
-        }
 
 
 @mcp.tool()
@@ -1094,11 +890,6 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
     global current_session
     
     try:
-        # Log provided parameters
-        logger.info(f"Generating project files - language: {params.language}, "
-                   f"framework: {params.framework}, project_name: {params.project_name}, "
-                   f"include_examples: {params.include_examples}")
-        
         # Use defaults for optional parameters
         language_str = params.language or "python"
         framework_str = params.framework or "requests"
@@ -1109,7 +900,6 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
         try:
             language_enum = TestLanguage(language_str.lower())
             framework_enum = TestFramework(framework_str.lower())
-            logger.info(f"Using language: {language_enum.value}, framework: {framework_enum.value}")
         except ValueError as e:
             return {
                 "success": False,
@@ -1203,7 +993,6 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
                     f.write(test_code)
                 
                 workspace_test_files[os.path.basename(test_file_path)] = test_code
-                logger.info(f"Generated workspace test file: {test_file_path}")
                 
             except Exception as e:
                 logger.warning(f"Failed to generate workspace test files: {str(e)}")
@@ -1211,8 +1000,7 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
         # Generate setup instructions
         setup_instructions = _generate_setup_instructions(language_enum, framework_enum, project_name)
         
-        # Save files to output directory if possible
-        import os
+        # Save files to output directory
         project_dir = os.path.join(OUTPUT_BASE_DIR, "generated_projects", project_name)
         os.makedirs(project_dir, exist_ok=True)
         
@@ -1226,8 +1014,6 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             saved_files.append(file_path)
-        
-        logger.info(f"Generated {params.language}/{params.framework} project: {project_dir}")
         
         return {
             "success": True,
@@ -1397,30 +1183,7 @@ async def get_session_status() -> Dict[str, Any]:
     return session_info
 
 
-@mcp.tool()
-async def get_operation_progress() -> Dict[str, Any]:
-    """
-    Get detailed progress information for the current operation.
-    
-    Returns:
-        Dictionary with detailed progress information
-    """
-    global current_session
-    
-    if not current_session:
-        return {
-            "success": False,
-            "error": "No active session"
-        }
-    
-    # This would be enhanced with actual progress tracking
-    # For now, return basic status
-    return {
-        "success": True,
-        "session_id": current_session.id,
-        "status": current_session.status.value,
-        "message": "Progress tracking will be available during test execution"
-    }
+
 
 
 # MCP Resources - Make HTML reports accessible
