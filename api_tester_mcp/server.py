@@ -34,10 +34,28 @@ test_results: List[TestResult] = []
 load_test_results: Dict[str, Any] = {}
 report_generator = ReportGenerator()
 
-# Ensure output directories exist
-os.makedirs("output/reports", exist_ok=True)
-os.makedirs("output/scenarios", exist_ok=True)
-os.makedirs("output/test_cases", exist_ok=True)
+# Get the workspace directory (current working directory where VS Code is running)
+def get_workspace_dir() -> str:
+    """Get the current workspace directory"""
+    # Try to get from environment variable first (VS Code sets this)
+    workspace_dir = os.environ.get('PWD') or os.environ.get('WORKSPACE_DIR') or os.getcwd()
+    return workspace_dir
+
+# Ensure output directories exist in workspace
+def ensure_output_directories():
+    """Create output directories in the current workspace"""
+    workspace_dir = get_workspace_dir()
+    output_base = os.path.join(workspace_dir, "output")
+    
+    os.makedirs(os.path.join(output_base, "reports"), exist_ok=True)
+    os.makedirs(os.path.join(output_base, "scenarios"), exist_ok=True) 
+    os.makedirs(os.path.join(output_base, "test_cases"), exist_ok=True)
+    os.makedirs(os.path.join(output_base, "generated_projects"), exist_ok=True)
+    
+    return output_base
+
+# Initialize output directories
+OUTPUT_BASE_DIR = ensure_output_directories()
 
 
 # Pydantic models for tool parameters
@@ -371,7 +389,7 @@ async def generate_scenarios(params: GenerateScenariosParams) -> Dict[str, Any]:
         current_session.scenarios = scenarios
         
         # Save scenarios to file
-        scenarios_file = f"output/scenarios/scenarios_{current_session.id}.json"
+        scenarios_file = os.path.join(OUTPUT_BASE_DIR, "scenarios", f"scenarios_{current_session.id}.json")
         with open(scenarios_file, 'w') as f:
             scenarios_data = [scenario.model_dump() for scenario in scenarios]
             json.dump(scenarios_data, f, indent=2)
@@ -483,7 +501,7 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         current_session.test_cases = test_cases
         
         # Save test cases to file
-        test_cases_file = f"output/test_cases/test_cases_{current_session.id}.json"
+        test_cases_file = os.path.join(OUTPUT_BASE_DIR, "test_cases", f"test_cases_{current_session.id}.json")
         with open(test_cases_file, 'w') as f:
             test_cases_data = [test_case.model_dump() for test_case in test_cases]
             json.dump(test_cases_data, f, indent=2)
@@ -523,6 +541,69 @@ async def generate_test_cases(params: GenerateTestCasesParams) -> Dict[str, Any]
         return {
             "success": False,
             "error": f"Failed to generate test cases: {error_details['message']}"
+        }
+
+
+
+
+
+@mcp.tool()
+async def save_scenarios_to_workspace() -> Dict[str, Any]:
+    """
+    Save test scenarios as readable JSON files directly to the current workspace.
+    
+    Returns:
+        Dictionary with information about saved scenario files
+    """
+    global current_session
+    
+    if not current_session:
+        return {
+            "success": False,
+            "error": "No active session. Please ingest a specification first."
+        }
+    
+    if not current_session.scenarios:
+        return {
+            "success": False,
+            "error": "No scenarios available. Please generate scenarios first."
+        }
+    
+    try:
+        workspace_dir = get_workspace_dir()
+        
+        # Save scenarios as JSON
+        scenarios_file = os.path.join(workspace_dir, f"scenarios_{current_session.id}.json")
+        with open(scenarios_file, 'w', encoding='utf-8') as f:
+            scenarios_data = [scenario.model_dump() for scenario in current_session.scenarios]
+            json.dump(scenarios_data, f, indent=2)
+        
+        # Save test cases as JSON if available  
+        test_cases_file = None
+        if current_session.test_cases:
+            test_cases_file = os.path.join(workspace_dir, f"test_cases_{current_session.id}.json")
+            with open(test_cases_file, 'w', encoding='utf-8') as f:
+                test_cases_data = [test_case.model_dump() for test_case in current_session.test_cases]
+                json.dump(test_cases_data, f, indent=2)
+        
+        logger.info(f"Saved scenarios and test cases to workspace: {workspace_dir}")
+        
+        return {
+            "success": True,
+            "session_id": current_session.id,
+            "workspace_directory": workspace_dir,
+            "scenarios_file": scenarios_file,
+            "test_cases_file": test_cases_file,
+            "scenarios_count": len(current_session.scenarios),
+            "test_cases_count": len(current_session.test_cases) if current_session.test_cases else 0
+        }
+        
+    except Exception as e:
+        error_details = extract_error_details(e)
+        logger.error(f"Failed to save to workspace: {error_details}")
+        return {
+            "success": False,
+            "error": f"Failed to save to workspace: {error_details['message']}"
         }
 
 
@@ -587,7 +668,7 @@ async def run_api_tests(params: RunApiTestsParams) -> Dict[str, Any]:
         
         # Generate HTML report
         html_report = report_generator.generate_api_test_report(test_results, current_session)
-        report_file = f"output/reports/api_test_report_{current_session.id}.html"
+        report_file = os.path.join(OUTPUT_BASE_DIR, "reports", f"api_test_report_{current_session.id}.html")
         
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -698,7 +779,7 @@ async def run_load_tests(params: RunLoadTestsParams) -> Dict[str, Any]:
         
         # Generate HTML report
         html_report = report_generator.generate_load_test_report(load_test_results, current_session)
-        report_file = f"output/reports/load_test_report_{current_session.id}.html"
+        report_file = os.path.join(OUTPUT_BASE_DIR, "reports", f"load_test_report_{current_session.id}.html")
         
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(html_report)
@@ -862,6 +943,140 @@ class GenerateProjectParams(BaseModel):
     include_examples: Optional[bool] = True
 
 
+class GenerateTestFilesParams(BaseModel):
+    language: Optional[str] = None  # python, typescript, javascript (uses session default if None)
+    framework: Optional[str] = None  # pytest, requests, playwright, jest, cypress, supertest (uses session default if None)
+    file_name: Optional[str] = None  # Custom file name (optional)
+
+
+@mcp.tool()
+async def generate_test_files_to_workspace(params: GenerateTestFilesParams) -> Dict[str, Any]:
+    """
+    Generate test files directly in the current workspace directory.
+    
+    Args:
+        language: Programming language (python, typescript, javascript). Uses session default if not provided.
+        framework: Testing framework (pytest, playwright, jest, etc.). Uses session default if not provided.
+        file_name: Custom file name (optional). If not provided, uses a default naming pattern.
+    
+    Returns:
+        Dictionary with information about generated test files in the workspace
+    """
+    global current_session
+    
+    if not current_session:
+        return {
+            "success": False,
+            "error": "No active session. Please ingest a specification first."
+        }
+    
+    if not current_session.test_cases:
+        return {
+            "success": False,
+            "error": "No test cases available. Please generate test cases first."
+        }
+    
+    try:
+        # Parse language and framework if provided, otherwise use session defaults
+        language = current_session.preferred_language
+        framework = current_session.preferred_framework
+        
+        if params.language:
+            try:
+                language = TestLanguage(params.language.lower())
+            except ValueError:
+                return {
+                    "success": False,
+                    "error": f"Unsupported language: {params.language}"
+                }
+        
+        if params.framework:
+            try:
+                framework = TestFramework(params.framework.lower())
+            except ValueError:
+                return {
+                    "success": False,
+                    "error": f"Unsupported framework: {params.framework}"
+                }
+        
+        # Generate test code
+        generator = TestCaseGenerator(
+            base_url=current_session.env_vars.get("baseUrl", ""),
+            env_vars=current_session.env_vars,
+            language=language,
+            framework=framework
+        )
+        
+        session_info = {
+            'id': current_session.id,
+            'base_url': current_session.env_vars.get("baseUrl", ""),
+            'auth_token': current_session.env_vars.get('auth_bearer', ''),
+        }
+        
+        code_generator = generator.code_generator
+        test_code = code_generator.generate_test_code(current_session.test_cases, session_info)
+        
+        # Determine file name and path
+        workspace_dir = get_workspace_dir()
+        
+        if params.file_name:
+            # Use custom file name
+            file_name = params.file_name
+            # Ensure proper extension
+            if not any(file_name.endswith(ext) for ext in ['.py', '.ts', '.js']):
+                if language == TestLanguage.PYTHON:
+                    file_name += '.py'
+                elif language == TestLanguage.TYPESCRIPT:
+                    file_name += '.ts'
+                elif language == TestLanguage.JAVASCRIPT:
+                    file_name += '.js'
+        else:
+            # Generate default file name based on language/framework
+            if language == TestLanguage.PYTHON:
+                if framework == TestFramework.PYTEST:
+                    file_name = f"test_api_{current_session.id}.py"
+                else:
+                    file_name = f"api_tests_{current_session.id}.py"
+            elif language == TestLanguage.TYPESCRIPT:
+                if framework == TestFramework.PLAYWRIGHT:
+                    file_name = f"api_tests_{current_session.id}.spec.ts"
+                else:
+                    file_name = f"api_tests_{current_session.id}.test.ts"
+            elif language == TestLanguage.JAVASCRIPT:
+                if framework == TestFramework.CYPRESS:
+                    file_name = f"api_tests_{current_session.id}.cy.js"
+                else:
+                    file_name = f"api_tests_{current_session.id}.test.js"
+        
+        test_file_path = os.path.join(workspace_dir, file_name)
+        
+        # Write the test file to workspace
+        with open(test_file_path, 'w', encoding='utf-8') as f:
+            f.write(test_code)
+        
+        logger.info(f"Generated test file in workspace: {test_file_path}")
+        
+        return {
+            "success": True,
+            "session_id": current_session.id,
+            "language": language.value,
+            "framework": framework.value,
+            "file_name": file_name,
+            "file_path": test_file_path,
+            "workspace_directory": workspace_dir,
+            "test_cases_count": len(current_session.test_cases),
+            "file_content": test_code[:500] + "..." if len(test_code) > 500 else test_code
+        }
+        
+    except Exception as e:
+        error_details = extract_error_details(e)
+        logger.error(f"Failed to generate test files to workspace: {error_details}")
+        return {
+            "success": False,
+            "error": f"Failed to generate test files: {error_details['message']}"
+        }
+
+
 @mcp.tool()
 async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any]:
     """
@@ -945,12 +1160,60 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
             except Exception as e:
                 logger.warning(f"Failed to generate example files: {str(e)}")
         
+        # Also create standalone test files directly in workspace if requested
+        workspace_test_files = {}
+        if current_session and current_session.test_cases:
+            try:
+                generator = TestCaseGenerator(
+                    base_url=current_session.env_vars.get("baseUrl", ""),
+                    env_vars=current_session.env_vars,
+                    language=language_enum,
+                    framework=framework_enum
+                )
+                
+                session_info = {
+                    'id': current_session.id,
+                    'base_url': current_session.env_vars.get("baseUrl", ""),
+                    'auth_token': current_session.env_vars.get('auth_bearer', ''),
+                }
+                
+                code_generator = generator.code_generator
+                test_code = code_generator.generate_test_code(current_session.test_cases, session_info)
+                
+                # Determine workspace file name based on language/framework
+                workspace_dir = get_workspace_dir()
+                if language_enum == TestLanguage.PYTHON:
+                    if framework_enum == TestFramework.PYTEST:
+                        test_file_path = os.path.join(workspace_dir, f"test_api_{current_session.id}.py")
+                    else:
+                        test_file_path = os.path.join(workspace_dir, f"api_tests_{current_session.id}.py")
+                elif language_enum == TestLanguage.TYPESCRIPT:
+                    if framework_enum == TestFramework.PLAYWRIGHT:
+                        test_file_path = os.path.join(workspace_dir, f"api_tests_{current_session.id}.spec.ts")
+                    else:
+                        test_file_path = os.path.join(workspace_dir, f"api_tests_{current_session.id}.test.ts")
+                elif language_enum == TestLanguage.JAVASCRIPT:
+                    if framework_enum == TestFramework.CYPRESS:
+                        test_file_path = os.path.join(workspace_dir, f"api_tests_{current_session.id}.cy.js")
+                    else:
+                        test_file_path = os.path.join(workspace_dir, f"api_tests_{current_session.id}.test.js")
+                
+                # Write the test file directly to workspace
+                with open(test_file_path, 'w', encoding='utf-8') as f:
+                    f.write(test_code)
+                
+                workspace_test_files[os.path.basename(test_file_path)] = test_code
+                logger.info(f"Generated workspace test file: {test_file_path}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to generate workspace test files: {str(e)}")
+        
         # Generate setup instructions
         setup_instructions = _generate_setup_instructions(language_enum, framework_enum, project_name)
         
         # Save files to output directory if possible
         import os
-        project_dir = f"output/generated_projects/{project_name}"
+        project_dir = os.path.join(OUTPUT_BASE_DIR, "generated_projects", project_name)
         os.makedirs(project_dir, exist_ok=True)
         
         saved_files = []
@@ -972,14 +1235,17 @@ async def generate_project_files(params: GenerateProjectParams) -> Dict[str, Any
             "framework": framework_str,
             "project_name": project_name,
             "project_directory": project_dir,
+            "workspace_directory": get_workspace_dir(),
             "generated_files": {
                 "package_files": list(package_files.keys()),
                 "example_files": list(example_files.keys()) if example_files else [],
+                "workspace_test_files": list(workspace_test_files.keys()) if workspace_test_files else [],
                 "all_files": list(all_files.keys())
             },
-            "file_contents": all_files,
+            "file_contents": {**all_files, **workspace_test_files},
             "setup_instructions": setup_instructions,
-            "saved_files": saved_files
+            "saved_files": saved_files,
+            "workspace_test_files": workspace_test_files
         }
         
     except Exception as e:
@@ -1170,7 +1436,7 @@ async def get_report(report_id: str) -> Resource:
         Resource containing the HTML report content
     """
     try:
-        report_file = f"output/reports/{report_id}.html"
+        report_file = os.path.join(OUTPUT_BASE_DIR, "reports", f"{report_id}.html")
         
         if not os.path.exists(report_file):
             return Resource(
@@ -1213,7 +1479,7 @@ async def list_reports() -> Resource:
         Resource containing a list of available reports
     """
     try:
-        reports_dir = "output/reports"
+        reports_dir = os.path.join(OUTPUT_BASE_DIR, "reports")
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir, exist_ok=True)
             
