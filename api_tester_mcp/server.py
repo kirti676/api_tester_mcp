@@ -32,20 +32,57 @@ current_session: Optional[TestSession] = None
 test_results: List[TestResult] = []
 load_test_results: Dict[str, Any] = {}
 report_generator = ReportGenerator()
+ingested_file_directory: Optional[str] = None  # Directory of the ingested API specification file
+
+def set_workspace_directory(file_path: Optional[str] = None) -> str:
+    """
+    Set the workspace directory based on a file path or reset to default behavior.
+    
+    Args:
+        file_path: Path to a file whose directory should be used as workspace, or None to reset
+    
+    Returns:
+        The selected workspace directory
+    """
+    global ingested_file_directory
+    
+    if file_path and os.path.exists(file_path):
+        ingested_file_directory = os.path.dirname(os.path.abspath(file_path))
+        logger.info(f"Workspace directory set to: {ingested_file_directory}")
+    else:
+        ingested_file_directory = None
+        logger.info("Workspace directory reset to default behavior")
+    
+    return get_workspace_dir()
+
+def reset_workspace_directory():
+    """Reset workspace directory to default behavior (ignore ingested file directory)."""
+    global ingested_file_directory
+    ingested_file_directory = None
+    logger.info("Workspace directory reset to default behavior")
 
 # Get the workspace directory (current working directory where VS Code is running)
 def get_workspace_dir() -> str:
     """
     Get the current workspace directory with multiple fallback strategies.
+    Prioritizes the directory of the ingested API specification file if available.
     This ensures the function works across different environments and workspace configurations.
     """
+    global ingested_file_directory
+    
+    # Strategy 0: Use the directory of the ingested API specification file (highest priority)
+    workspace_candidates = []
+    if ingested_file_directory:
+        workspace_candidates.append(ingested_file_directory)
+        logger.info(f"Prioritizing ingested file directory: {ingested_file_directory}")
+    
     # Strategy 1: Environment variables (VS Code and other IDEs set these)
-    workspace_candidates = [
+    workspace_candidates.extend([
         os.environ.get('PWD'),
         os.environ.get('WORKSPACE_DIR'),
         os.environ.get('VSCODE_CWD'),
         os.environ.get('INIT_CWD')
-    ]
+    ])
     
     # Strategy 2: Current working directory
     workspace_candidates.append(os.getcwd())
@@ -219,7 +256,7 @@ OUTPUT_BASE_DIR = ensure_output_directories()
 # Pydantic models for tool parameters
 class IngestSpecParams(BaseModel):
     spec_type: Optional[str] = "openapi"  # openapi, swagger, postman
-    content: str  # JSON or YAML specification content (required)
+    file_path: str  # Path to the API specification file (JSON or YAML)
     preferred_language: Optional[str] = "python"  # python, typescript, javascript  
     preferred_framework: Optional[str] = "requests"  # pytest, requests, playwright, jest, cypress, supertest
 
@@ -263,31 +300,61 @@ class RunLoadTestsParams(BaseModel):
 @mcp.tool()
 async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
     """
-    Ingest an API specification (OpenAPI/Swagger or Postman collection).
+    Ingest an API specification (OpenAPI/Swagger or Postman collection) from a file.
     Automatically analyzes the specification and suggests required environment variables.
     
     Args:
-        spec_type: Type of specification ('openapi', 'swagger', or 'postman')
-        content: The specification content as JSON or YAML string
+        spec_type: Type of specification ('openapi', 'swagger', or 'postman'). 
+                  If not provided, the function will attempt to auto-detect from the file content.
+        file_path: Path to the API specification file (JSON or YAML format).
+                  Can be absolute or relative path. The file must exist and be readable.
         preferred_language: Preferred programming language for test generation (python, typescript, javascript)
         preferred_framework: Preferred testing framework (pytest, playwright, jest, etc.)
     
     Returns:
-        Dictionary with ingestion results, session information, and environment variable analysis
+        Dictionary with ingestion results, session information, and environment variable analysis.
+        Includes the original file path in the 'spec_file_path' field for reference.
+        
+    Raises:
+        Returns error dictionary if file doesn't exist, can't be read, or has invalid format.
     """
-    global current_session
+    global current_session, ingested_file_directory
     
     try:
         # Log provided parameters
-        logger.info(f"Ingesting specification - spec_type: {params.spec_type}, "
+        logger.info(f"Ingesting specification - file_path: {params.file_path}, "
+                   f"spec_type: {params.spec_type}, "
                    f"preferred_language: {params.preferred_language}, "
                    f"preferred_framework: {params.preferred_framework}")
+        
+        # Check if file exists
+        if not os.path.exists(params.file_path):
+            return {
+                "success": False,
+                "error": f"Specification file not found: {params.file_path}"
+            }
+        
+        # Read file content
+        try:
+            with open(params.file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+            logger.info(f"Successfully read specification file: {params.file_path}")
+            
+            # Capture the directory of the ingested file to use as workspace directory
+            ingested_file_directory = os.path.dirname(os.path.abspath(params.file_path))
+            logger.info(f"Set workspace directory to ingested file location: {ingested_file_directory}")
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to read specification file {params.file_path}: {str(e)}"
+            }
         
         # Use provided spec_type or auto-detect
         spec_type_to_use = params.spec_type or "openapi"
         
         # Auto-detect spec type if needed or validate provided type
-        detected_type = validate_spec_type(params.content)
+        detected_type = validate_spec_type(content)
         if detected_type:
             if params.spec_type and detected_type != params.spec_type.lower():
                 logger.warning(f"Detected spec type '{detected_type}' differs from provided '{params.spec_type}', using detected type")
@@ -303,7 +370,7 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
         # Parse specification
         parser = SpecificationParser()
         spec_type = SpecType(spec_type_to_use.lower())
-        endpoints = parser.parse(params.content, spec_type)
+        endpoints = parser.parse(content, spec_type)
         
         if not endpoints:
             return {
@@ -312,7 +379,7 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
             }
         
         # Analyze required environment variables
-        spec_data = json.loads(params.content) if params.content.strip().startswith('{') else yaml.safe_load(params.content)
+        spec_data = json.loads(content) if content.strip().startswith('{') else yaml.safe_load(content)
         env_analysis = analyze_required_env_vars(spec_data, spec_type, parser.base_url)
         
         # Parse language and framework preferences
@@ -357,9 +424,17 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
         else:
             env_message.append("✅ No authentication or environment variables required.")
         
+        # Add workspace directory information to the setup message
+        env_message.append("")
+        env_message.append(f"📁 Workspace directory set to API specification file location:")
+        env_message.append(f"   {ingested_file_directory}")
+        env_message.append("   Generated files (scenarios, test cases, reports) will be saved here.")
+        
         return {
             "success": True,
             "session_id": session_id,
+            "spec_file_path": params.file_path,
+            "workspace_directory": ingested_file_directory,
             "spec_type": spec_type.value,
             "preferred_language": preferred_language.value,
             "preferred_framework": preferred_framework.value,
@@ -1514,6 +1589,48 @@ def _generate_setup_instructions(language: TestLanguage, framework: TestFramewor
     ])
     
     return instructions
+
+@mcp.tool()
+async def get_workspace_info() -> Dict[str, Any]:
+    """
+    Get information about the current workspace directory and file generation locations.
+    
+    Returns:
+        Dictionary with workspace information including current directory and whether it was
+        set from an ingested API specification file.
+    """
+    global ingested_file_directory
+    
+    try:
+        current_workspace = get_workspace_dir()
+        
+        workspace_info = {
+            "success": True,
+            "current_workspace_directory": current_workspace,
+            "is_from_ingested_file": ingested_file_directory is not None,
+            "ingested_file_directory": ingested_file_directory,
+            "output_directories": {
+                "reports": ensure_workspace_output_dir("reports"),
+                "scenarios": ensure_workspace_output_dir("scenarios"),
+                "test_cases": ensure_workspace_output_dir("test_cases"),
+                "generated_projects": ensure_workspace_output_dir("generated_projects")
+            },
+            "directory_access": check_directory_access(current_workspace)
+        }
+        
+        if ingested_file_directory:
+            workspace_info["message"] = f"Workspace directory set from ingested API specification file location: {current_workspace}"
+        else:
+            workspace_info["message"] = f"Using default workspace directory: {current_workspace}"
+        
+        return workspace_info
+        
+    except Exception as e:
+        logger.error(f"Failed to get workspace info: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to get workspace info: {str(e)}"
+        }
 
 @mcp.tool()
 async def debug_file_system() -> Dict[str, Any]:

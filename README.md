@@ -155,7 +155,7 @@ const languages = await mcp.call("get_supported_languages");
 // 2. Choose your preferred combination
 await mcp.call("ingest_spec", {
   spec_type: "openapi",
-  content: spec_content,
+  file_path: "./path/to/your/api-spec.json",
   preferred_language: "typescript",    // python, typescript, javascript
   preferred_framework: "playwright"     // varies by language
 });
@@ -282,7 +282,7 @@ The API Tester MCP now automatically analyzes your API specifications to detect 
 // 1. Ingest specification - automatic analysis included
 const result = await mcp.call("ingest_spec", {
   spec_type: "openapi",
-  content: openapi_json_string
+  file_path: "./api-specification.json"
 });
 
 // Check the setup message for immediate guidance
@@ -334,7 +334,7 @@ Default values help you understand available options:
 // Ingest with defaults shown
 await mcp.call("ingest_spec", {
   spec_type: "openapi",        // openapi, swagger, postman
-  content: "...",              // JSON or YAML specification content
+  file_path: "./api-spec.json", // Path to JSON or YAML specification file
   preferred_language: "python", // python, typescript, javascript
   preferred_framework: "requests" // pytest, requests, playwright, jest, cypress, supertest
 });
@@ -376,7 +376,7 @@ console.log(languages.supported_combinations);
 // Ingest specification with language preferences
 await mcp.call("ingest_spec", {
   spec_type: "openapi",
-  content: openapi_json_string,
+  file_path: "./openapi-specification.json",
   preferred_language: "typescript",
   preferred_framework: "playwright"
 });
@@ -430,8 +430,8 @@ Then in your MCP client (like Claude Desktop):
 ```javascript
 // 1. Load the Petstore OpenAPI spec
 await mcp.call("ingest_spec", {
-  kind: "openapi", 
-  path_or_text: "https://petstore.swagger.io/v2/swagger.json"
+  spec_type: "openapi",
+  file_path: "./examples/petstore_openapi.json"
 });
 
 // 2. Set environment variables

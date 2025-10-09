@@ -46,7 +46,7 @@ console.log(languages.supported_combinations);
 // Ingest OpenAPI spec with TypeScript/Playwright preference
 await mcp.call("ingest_spec", {
   spec_type: "openapi",
-  content: JSON.stringify(petstore_openapi),
+  file_path: "./examples/petstore_openapi.json",
   preferred_language: "typescript",
   preferred_framework: "playwright"
 });

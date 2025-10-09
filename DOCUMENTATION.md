@@ -79,13 +79,13 @@ Start by loading your API specification:
 # OpenAPI/Swagger
 await ingest_spec({
     "spec_type": "openapi",
-    "content": "<your-openapi-json-or-yaml>"
+    "file_path": "./path/to/openapi-spec.json"
 })
 
 # Postman Collection
 await ingest_spec({
     "spec_type": "postman", 
-    "content": "<your-postman-collection-json>"
+    "file_path": "./path/to/postman-collection.json"
 })
 ```
 
