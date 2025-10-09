@@ -1794,7 +1794,9 @@ async def get_session_status() -> Dict[str, Any]:
         "endpoints_count": len(current_session.spec_content.get("paths", {})),
         "scenarios_count": len(current_session.scenarios),
         "test_cases_count": len(current_session.test_cases),
-        "env_vars": current_session.env_vars
+        "env_vars": current_session.env_vars,
+        "preferred_language": current_session.preferred_language.value,
+        "preferred_framework": current_session.preferred_framework.value
     }
     
     # Add progress information if there's an active operation
