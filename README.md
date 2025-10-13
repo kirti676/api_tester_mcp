@@ -4,6 +4,22 @@
 [![npm downloads](https://img.shields.io/npm/dt/@kirti676/api-tester-mcp.svg)](https://www.npmjs.com/package/@kirti676/api-tester-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## 📄 Copyright & Usage
+
+**© 2025 kirti676. All rights reserved.**
+
+This repository and its contents are protected by copyright law. For permission to reuse, reference, or redistribute any part of this project, please contact the owner at [kirti676@outlook.com](mailto:kirti676@outlook.com).
+
+**Usage Guidelines:**
+- ✅ Personal use and learning
+- ✅ Contributions via Pull Requests
+- ❌ Commercial redistribution without permission
+- ❌ Direct copying for commercial projects
+
+For licensing inquiries, collaboration opportunities, or permission requests, reach out to [kirti676@outlook.com](mailto:kirti676@outlook.com).
+
+---
+
 A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that provides API testing capabilities with Swagger/OpenAPI and Postman collection support.
 
 > 🎉 **Now available on NPM!** Install with `npx @kirti676/api-tester-mcp@latest`
