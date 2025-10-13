@@ -4,22 +4,6 @@
 [![npm downloads](https://img.shields.io/npm/dt/@kirti676/api-tester-mcp.svg)](https://www.npmjs.com/package/@kirti676/api-tester-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 📄 Copyright & Usage
-
-**© 2025 kirti676. All rights reserved.**
-
-This repository and its contents are protected by copyright law. For permission to reuse, reference, or redistribute any part of this project, please contact the owner at [kirti676@outlook.com](mailto:kirti676@outlook.com).
-
-**Usage Guidelines:**
-- ✅ Personal use and learning
-- ✅ Contributions via Pull Requests
-- ❌ Commercial redistribution without permission
-- ❌ Direct copying for commercial projects
-
-For licensing inquiries, collaboration opportunities, or permission requests, reach out to [kirti676@outlook.com](mailto:kirti676@outlook.com).
-
----
-
 A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that provides API testing capabilities with Swagger/OpenAPI and Postman collection support.
 
 > 🎉 **Now available on NPM!** Install with `npx @kirti676/api-tester-mcp@latest`
@@ -37,7 +21,7 @@ A comprehensive Model Context Protocol (MCP) server for QA/SDET engineers that p
 
 ## 🚀 Getting Started
 
-### Installation
+### 📦 Installation
 
 The API Tester MCP server can be used directly with npx without any installation:
 
@@ -45,11 +29,12 @@ The API Tester MCP server can be used directly with npx without any installation
 npx @kirti676/api-tester-mcp@latest
 ```
 
-**Quick Install:**
+**⚡ Quick Install:**
 
-[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22api-tester%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40kirti676%2Fapi-tester-mcp%40latest%22%5D%7D) [![Install in VS Code Insiders](https://img.shields.io/badge/Install%20in-VS%20Code%20Insiders-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%7B%22name%22%3A%22api-tester%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40kirti676%2Fapi-tester-mcp%40latest%22%5D%7D)
+[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22api-tester%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40kirti676%2Fapi-tester-mcp%40latest%22%5D%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/Install%20in-VS%20Code%20Insiders-blue?style=for-the-badge&logo=visual-studio-code)](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%7B%22name%22%3A%22API-tester%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40kirti676%2Fapi-tester-mcp%40latest%22%5D%7D)
 
-### Claude Desktop
+### 🤖 Claude Desktop
 
 Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user), use the standard config below:
 
@@ -64,7 +49,7 @@ Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user),
 }
 ```
 
-### Other MCP Clients
+### 🔗 Other MCP Clients
 
 The standard configuration works with most MCP clients:
 
@@ -79,21 +64,21 @@ The standard configuration works with most MCP clients:
 }
 ```
 
-**Supported Clients:**
-- [Claude Desktop](https://claude.ai/desktop)
-- [VS Code](https://code.visualstudio.com/) with MCP extension
-- [Cursor](https://cursor.sh/)
-- [Windsurf](https://codeium.com/windsurf)
-- [Goose](https://github.com/Codium-ai/goose)
-- Any other MCP-compatible client
+**🖥️ Supported Clients:**
+- 🤖 [Claude Desktop](https://claude.ai/desktop)
+- 💻 [VS Code](https://code.visualstudio.com/) with MCP extension
+- ⚡ [Cursor](https://cursor.sh/)
+- 🌊 [Windsurf](https://codeium.com/windsurf)
+- 🪿 [Goose](https://github.com/Codium-ai/goose)
+- 🔧 Any other MCP-compatible client
 
-### Python Installation (Alternative)
+### 🐍 Python Installation (Alternative)
 
 ```bash
 pip install api-tester-mcp
 ```
 
-### From Source
+### 💻 From Source
 
 ```bash
 git clone https://github.com/kirti676/api_tester_mcp.git
@@ -150,18 +135,18 @@ For MCP clients like Claude Desktop, use this configuration:
 
 The API Tester MCP now supports generating test code in multiple programming languages and testing frameworks:
 
-### Supported Language/Framework Combinations
+### 🔧 Supported Language/Framework Combinations
 
 | Language   | Framework  | Description                                    | Use Case                    |
 |------------|------------|------------------------------------------------|-----------------------------|
-| TypeScript | Playwright | Modern E2E testing with excellent API support | Enterprise web applications |
-| TypeScript | Supertest  | Express.js focused API testing                | Node.js backend services    |
-| JavaScript | Jest       | Popular testing framework with good ecosystem | General API testing         |
-| JavaScript | Cypress    | E2E testing with great developer experience   | Full-stack applications     |
-| Python     | pytest     | Comprehensive testing with fixtures & plugins | Data-heavy APIs & ML services |
-| Python     | requests   | Simple HTTP testing for quick validation      | Rapid prototyping & scripts |
+| 📘 TypeScript | 🎭 Playwright | Modern E2E testing with excellent API support | 🏢 Enterprise web applications |
+| 📘 TypeScript | 🚀 Supertest  | Express.js focused API testing                | 🟢 Node.js backend services    |
+| 📙 JavaScript | 🃏 Jest       | Popular testing framework with good ecosystem | 🔧 General API testing         |
+| 📙 JavaScript | 🌲 Cypress    | E2E testing with great developer experience   | 🌐 Full-stack applications     |
+| 🐍 Python     | 🧪 pytest     | Comprehensive testing with fixtures & plugins | 📊 Data-heavy APIs & ML services |
+| 🐍 Python     | 📡 requests   | Simple HTTP testing for quick validation      | ⚡ Rapid prototyping & scripts |
 
-### Language Selection Workflow
+### 🎯 Language Selection Workflow
 
 ```javascript
 // 1. Get available languages and frameworks
@@ -190,87 +175,175 @@ await mcp.call("generate_project_files", {
 });
 ```
 
-### Generated Project Structure
+### 📁 Generated Project Structure
 
 The `generate_project_files` tool creates a complete, ready-to-run project:
 
-**TypeScript + Playwright:**
+**📘 TypeScript + Playwright:**
 ```
 my-api-tests/
-├── package.json          # Dependencies & scripts
-├── playwright.config.ts  # Playwright configuration
-├── tests/
-│   └── api.spec.ts      # Generated test code
-└── README.md            # Setup instructions
+├── 📦 package.json          # Dependencies & scripts
+├── ⚙️ playwright.config.ts  # Playwright configuration
+├── 📂 tests/
+│   └── 🧪 api.spec.ts      # Generated test code
+└── 📖 README.md            # Setup instructions
 ```
 
-**Python + pytest:**
+**🐍 Python + pytest:**
 ```
 my-api-tests/
-├── requirements.txt     # Python dependencies
-├── pytest.ini         # pytest configuration
-├── tests/
-│   └── test_api.py    # Generated test code
-└── README.md          # Setup instructions
+├── 📋 requirements.txt     # Python dependencies
+├── ⚙️ pytest.ini         # pytest configuration
+├── 📂 tests/
+│   └── 🧪 test_api.py    # Generated test code
+└── 📖 README.md          # Setup instructions
 ```
 
-**JavaScript + Jest:**
+**📙 JavaScript + Jest:**
 ```
 my-api-tests/
-├── package.json       # Dependencies & scripts
-├── jest.config.js     # Jest configuration
-├── tests/
-│   └── api.test.js   # Generated test code
-└── README.md         # Setup instructions
+├── 📦 package.json       # Dependencies & scripts
+├── ⚙️ jest.config.js     # Jest configuration
+├── 📂 tests/
+│   └── 🧪 api.test.js   # Generated test code
+└── 📖 README.md         # Setup instructions
 ```
 
-### Framework-Specific Features
+### 🎯 Framework-Specific Features
 
-- **Playwright**: Browser automation, parallel execution, detailed reporting
-- **Jest**: Snapshot testing, mocking, watch mode for development
-- **pytest**: Fixtures, parametrized tests, extensive plugin ecosystem
-- **Cypress**: Interactive debugging, time-travel debugging, real browser testing
-- **Supertest**: Express.js integration, middleware testing
-- **requests**: Simple API calls, session management, authentication helpers
+- **🎭 Playwright**: Browser automation, parallel execution, detailed reporting
+- **🃏 Jest**: Snapshot testing, mocking, watch mode for development
+- **🧪 pytest**: Fixtures, parametrized tests, extensive plugin ecosystem
+- **🌲 Cypress**: Interactive debugging, time-travel debugging, real browser testing
+- **🚀 Supertest**: Express.js integration, middleware testing
+- **📡 requests**: Simple API calls, session management, authentication helpers
 
 ## 📈 Progress Tracking
 
 The API Tester MCP includes comprehensive progress tracking for all operations:
 
-### Visual Progress Indicators
+### 📊 Visual Progress Indicators
 ```
 🎯 API Test Execution: [██████████░░░░░░░░░░] 50.0% (5/10) | ETA: 2.5s - GET /api/users ✅
 ```
 
-### Features:
-- **Progress Bars**: ASCII progress bars with filled/empty indicators
-- **Completion Percentages**: Real-time percentage completion
-- **ETA Calculations**: Estimated time to completion based on current performance
-- **Milestone Notifications**: Special highlighting at key progress points
-- **Performance Metrics**: Throughput and timing statistics
-- **Operation Context**: Detailed information about current step being executed
+### 🔥 Features:
+- **📊 Progress Bars**: ASCII progress bars with filled/empty indicators
+- **📈 Completion Percentages**: Real-time percentage completion
+- **⏰ ETA Calculations**: Estimated time to completion based on current performance
+- **🎯 Milestone Notifications**: Special highlighting at key progress points
+- **⚡ Performance Metrics**: Throughput and timing statistics
+- **📋 Operation Context**: Detailed information about current step being executed
 
-### Available for:
-- Scenario generation
-- Test case generation  
-- API test execution
-- Load test execution
-- All long-running operations
+### ✅ Available for:
+- 🎬 Scenario generation
+- 🧪 Test case generation  
+- 🚀 API test execution
+- ⚡ Load test execution
+- 🔄 All long-running operations
 
 ## 🛠️ MCP Tools
 
-The server provides 10 comprehensive MCP tools:
+The server provides 11 comprehensive MCP tools with detailed parameter specifications:
 
-1. **`ingest_spec`** - Load Swagger/OpenAPI or Postman collections with language preferences
-2. **`get_supported_languages`** - Get list of supported programming languages and frameworks (NEW!)
-3. **`get_env_var_suggestions`** - Get detailed environment variable setup guidance
-4. **`set_env_vars`** - Configure authentication and environment variables
-5. **`generate_scenarios`** - Create test scenarios from specifications
-6. **`generate_test_cases`** - Convert scenarios to executable test cases in selected language/framework (ENHANCED!)
-7. **`generate_project_files`** - Generate complete project with dependencies and configuration (NEW!)
-8. **`run_api_tests`** - Execute API tests with detailed results
-9. **`run_load_tests`** - Execute performance/load tests
-10. **`get_session_status`** - Retrieve current session information
+### 1. 📥 **`ingest_spec`** - Load API Specifications
+Load Swagger/OpenAPI or Postman collections with language/framework preferences
+```javascript
+{
+  "spec_type": "openapi",           // openapi, swagger, postman (optional, auto-detected)
+  "file_path": "./api-spec.json",   // Path to JSON or YAML specification file (required)
+  "preferred_language": "python",   // python, typescript, javascript (optional, default: python)
+  "preferred_framework": "requests" // pytest, requests, playwright, jest, cypress, supertest (optional, default: requests)
+}
+```
+
+### 2. 🔧 **`set_env_vars`** - Configure Authentication & Environment
+Set environment variables with automatic validation and guidance
+```javascript
+{
+  "variables": {},                  // Dictionary of custom environment variables (optional)
+  "baseUrl": null,                 // API base URL (optional)
+  "auth_bearer": null,             // Bearer/JWT token (optional)
+  "auth_apikey": null,             // API key (optional)
+  "auth_basic": null,              // Base64 encoded credentials (optional)
+  "auth_username": null,           // Username for basic auth (optional)
+  "auth_password": null            // Password for basic auth (optional)
+}
+```
+
+### 3. 🎬 **`generate_scenarios`** - Create Test Scenarios
+Generate test scenarios from ingested specifications
+```javascript
+{
+  "include_negative_tests": true,   // Generate failure scenarios (default: true)
+  "include_edge_cases": true        // Generate boundary conditions (default: true)
+}
+```
+
+### 4. 🧪 **`generate_test_cases`** - Convert to Executable Tests
+Convert scenarios to executable test cases in preferred language/framework
+```javascript
+{
+  "scenario_ids": null              // Array of scenario IDs or null for all (optional)
+}
+```
+
+### 5. 🚀 **`run_api_tests`** - Execute API Tests
+Execute API tests with detailed results and reporting
+```javascript
+{
+  "test_case_ids": null,           // Array of test case IDs or null for all (optional)
+  "max_concurrent": 10             // Number of concurrent requests 1-50 (default: 10)
+}
+```
+
+### 6. ⚡ **`run_load_tests`** - Execute Performance Tests
+Execute load/performance tests with configurable parameters
+```javascript
+{
+  "test_case_ids": null,           // Array of test case IDs or null for all (optional)
+  "duration": 60,                  // Test duration in seconds (default: 60)
+  "users": 10,                     // Number of concurrent virtual users (default: 10)
+  "ramp_up": 10                    // Ramp up time in seconds (default: 10)
+}
+```
+
+### 7. 🌐 **`get_supported_languages`** - List Language/Framework Options
+Get list of supported programming languages and testing frameworks
+```javascript
+// No parameters required
+{}
+```
+
+### 8. 📦 **`generate_project_files`** - Generate Complete Projects
+Generate complete project structure with dependencies and configuration
+```javascript
+{
+  "project_name": null,            // Project folder name (optional, auto-generated if null)
+  "include_examples": true         // Include example test files (default: true)
+}
+```
+
+### 9. 📁 **`get_workspace_info`** - Workspace Information
+Get information about workspace directory and file generation locations
+```javascript
+// No parameters required
+{}
+```
+
+### 10. 🔍 **`debug_file_system`** - File System Diagnostics
+Get comprehensive workspace information and file system diagnostics
+```javascript
+// No parameters required
+{}
+```
+
+### 11. 📊 **`get_session_status`** - Session Status & Progress
+Retrieve current session information with progress details
+```javascript
+// No parameters required
+{}
+```
 
 ## 📚 MCP Resources
 
@@ -282,17 +355,17 @@ The server provides 10 comprehensive MCP tools:
 - **`create_api_test_plan`** - Generate comprehensive API test plans
 - **`analyze_test_failures`** - Analyze test failures and provide recommendations
 
-## � Smart Environment Variable Analysis
+## 🔍 Smart Environment Variable Analysis
 
 The API Tester MCP now automatically analyzes your API specifications to detect required environment variables and provides helpful setup guidance:
 
-### Automatic Detection
-- **Authentication Schemes**: Bearer tokens, API keys, Basic auth, OAuth2
-- **Base URLs**: Extracted from specification servers/hosts
-- **Template Variables**: Postman collection variables like `{{baseUrl}}`, `{{authToken}}`
-- **Path Parameters**: Dynamic values in paths like `/users/{userId}`
+### 🎯 Automatic Detection
+- **🔐 Authentication Schemes**: Bearer tokens, API keys, Basic auth, OAuth2
+- **🌐 Base URLs**: Extracted from specification servers/hosts
+- **🔗 Template Variables**: Postman collection variables like `{{baseUrl}}`, `{{authToken}}`
+- **📍 Path Parameters**: Dynamic values in paths like `/users/{userId}`
 
-### Smart Suggestions
+### 💡 Smart Suggestions
 ```javascript
 // 1. Ingest specification - automatic analysis included
 const result = await mcp.call("ingest_spec", {
@@ -314,7 +387,7 @@ console.log(suggestions.setup_instructions);
 
 All MCP tools now provide helpful default parameter keys to guide users on what values they can set:
 
-### Environment Variables (`set_env_vars`)
+### 🔧 Environment Variables (`set_env_vars`)
 **🔑 ALL PARAMETERS ARE OPTIONAL** - Provide only what you need:
 ```javascript
 // Option 1: Just the base URL
@@ -343,7 +416,7 @@ await mcp.call("set_env_vars", {
 });
 ```
 
-### Language & Framework Selection
+### 🌐 Language & Framework Selection
 Default values help you understand available options:
 ```javascript
 // Ingest with defaults shown
@@ -363,7 +436,7 @@ await mcp.call("generate_project_files", {
 });
 ```
 
-### Test Execution Parameters
+### ⚡ Test Execution Parameters
 Clear defaults for performance tuning:
 ```javascript
 // API tests with concurrency control
@@ -431,7 +504,7 @@ await mcp.call("run_api_tests", {
 });
 ```
 
-## � Complete Workflow Example
+## 🚀 Complete Workflow Example
 
 Here's a complete example of testing the Petstore API:
 
@@ -469,11 +542,11 @@ const reports = await mcp.call("list_resources", {
 });
 ```
 
-## �📖 Usage Examples
+## 📖 Usage Examples
 
-### Basic API Testing Workflow
+### 🔄 Basic API Testing Workflow
 
-1. **Ingest API Specification**
+1. **📥 Ingest API Specification**
    ```json
    {
      "tool": "ingest_spec",
@@ -484,7 +557,7 @@ const reports = await mcp.call("list_resources", {
    }
    ```
 
-2. **Configure Authentication**
+2. **🔐 Configure Authentication**
    ```json
    {
      "tool": "set_env_vars", 
@@ -497,7 +570,7 @@ const reports = await mcp.call("list_resources", {
    }
    ```
 
-3. **Generate and Run Tests**
+3. **🚀 Generate and Run Tests**
    ```json
    {
      "tool": "generate_scenarios",
@@ -507,11 +580,11 @@ const reports = await mcp.call("list_resources", {
    }
    ```
 
-4. **View Results**
-   - Access HTML reports via MCP resources
-   - Get session status and statistics
+4. **📊 View Results**
+   - 📄 Access HTML reports via MCP resources
+   - 📈 Get session status and statistics
 
-### Load Testing
+### ⚡ Load Testing
 
 ```json
 {
@@ -526,51 +599,53 @@ const reports = await mcp.call("list_resources", {
 
 ## 🔍 Test Generation Features
 
-- **Positive Tests**: Valid requests with expected 2xx responses
-- **Negative Tests**: Invalid authentication (401), wrong methods (405)
-- **Edge Cases**: Large payloads, boundary conditions
-- **Schema-based Bodies**: Automatic request body generation from OpenAPI schemas
-- **Comprehensive Assertions**: Status codes, response times, content validation
+- **✅ Positive Tests**: Valid requests with expected 2xx responses
+- **❌ Negative Tests**: Invalid authentication (401), wrong methods (405)
+- **🎯 Edge Cases**: Large payloads, boundary conditions
+- **🏗️ Schema-based Bodies**: Automatic request body generation from OpenAPI schemas
+- **🔍 Comprehensive Assertions**: Status codes, response times, content validation
 
 ## 📊 HTML Reports
 
 Generated reports include:
-- Test execution summary with pass/fail statistics
-- Detailed test results with timing information
-- Assertion breakdowns and error details
-- Response previews and debugging information
-- Mobile-friendly responsive design
+- 📈 Test execution summary with pass/fail statistics
+- ⏱️ Detailed test results with timing information
+- 🔍 Assertion breakdowns and error details
+- 👁️ Response previews and debugging information
+- 📱 Mobile-friendly responsive design
 
 ## 🔒 Authentication Support
 
-- **Bearer Tokens**: `auth_bearer` environment variable
-- **API Keys**: `auth_apikey` environment variable (sent as X-API-Key header)
-- **Basic Auth**: `auth_basic` environment variable
+- **🎫 Bearer Tokens**: `auth_bearer` environment variable
+- **🔑 API Keys**: `auth_apikey` environment variable (sent as X-API-Key header)
+- **👤 Basic Auth**: `auth_basic` environment variable
 
 ## 🔧 Requirements
 
-- **Python**: 3.8 or higher
-- **Node.js**: 14 or higher (for npm installation)
+- **🐍 Python**: 3.8 or higher
+- **🟢 Node.js**: 14 or higher (for npm installation)
 
 ## 📦 Dependencies
 
-### Python Dependencies
-- fastmcp>=0.2.0
-- pydantic>=2.0.0
-- aiohttp>=3.8.0
-- jinja2>=3.1.0
-- pyyaml>=6.0
-- jsonschema>=4.0.0
-- faker>=19.0.0
+### 🐍 Python Dependencies
+- 🚀 fastmcp>=0.2.0
+- 📊 pydantic>=2.0.0
+- 🌐 requests>=2.28.0
+- ✅ jsonschema>=4.0.0
+- 📝 pyyaml>=6.0
+- 🎨 jinja2>=3.1.0
+- 📁 aiofiles>=23.0.0
+- ⚡ aiohttp>=3.8.0
+- 🎭 faker>=19.0.0
 
-### Node.js Dependencies  
-- None (self-contained package)
+### 🟢 Node.js Dependencies  
+- ✨ None (self-contained package)
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### ❗ Common Issues
 
-**NPX Command Not Working**
+**📦 NPX Command Not Working**
 ```bash
 # If npx command fails, try:
 npm install -g @kirti676/api-tester-mcp@latest
@@ -579,7 +654,7 @@ npm install -g @kirti676/api-tester-mcp@latest
 node ./node_modules/@kirti676/api-tester-mcp/cli.js
 ```
 
-**Python Not Found**
+**🐍 Python Not Found**
 ```bash
 # Make sure Python 3.8+ is installed and in PATH
 python --version
@@ -588,17 +663,16 @@ python --version
 pip install fastmcp>=0.2.0 pydantic>=2.0.0 requests>=2.28.0
 ```
 
-**MCP Client Connection Issues**
-- Ensure the MCP server is running on stdio transport (default)
-- Check that your MCP client supports the latest MCP protocol version
-- Verify the configuration JSON syntax is correct
+**🔗 MCP Client Connection Issues**
+- ✅ Ensure the MCP server is running on stdio transport (default)
+- 🔄 Check that your MCP client supports the latest MCP protocol version
+- 📝 Verify the configuration JSON syntax is correct
 
-### Getting Help
+### 🆘 Getting Help
 
-1. Check the [Examples](examples/) directory for working configurations
-2. See [PROGRESS_TRACKING.md](PROGRESS_TRACKING.md) for detailed progress tracking documentation
-3. Run with `--verbose` flag for detailed logging
-4. Report issues on [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
+1. 📖 Check the [Examples](examples/) directory for working configurations
+2. 🔍 Run with `--verbose` flag for detailed logging
+3. 🐛 Report issues on [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
 
 ## 🤝 Contributing
 
@@ -615,15 +689,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🐛 Issues & Support
 
 - **NPM Package**: [@kirti676/api-tester-mcp](https://www.npmjs.com/package/@kirti676/api-tester-mcp)
-- Report bugs: [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
-- Documentation: [GitHub Wiki](https://github.com/kirti676/api_tester_mcp/wiki)
-- Discussions: [GitHub Discussions](https://github.com/kirti676/api_tester_mcp/discussions)
-- Interactive install page: [install.html](install.html)
+- **Report bugs**: [GitHub Issues](https://github.com/kirti676/api_tester_mcp/issues)
 
 ## 📈 Roadmap
 
-- [x] **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
-- [x] **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
+- [✅] **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
+- [✅] **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
 - [ ] GraphQL API support
 - [ ] Additional authentication methods (OAuth2, JWT)
 - [ ] Go/Golang test generation (with testify/ginkgo)
@@ -634,6 +705,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] API contract testing with Pact support
 - [ ] Mock server generation for development
 
+## 📄 Copyright & Usage
+
+**© 2025 kirti676. All rights reserved.**
+
+This repository and its contents are protected by copyright law. For permission to reuse, reference, or redistribute any part of this project, please contact the owner at [kirti676@outlook.com](mailto:kirti676@outlook.com).
+
+**✅ Allowed without permission:**
+- Personal learning and experimentation
+- Contributing back to this repository via Pull Requests
+
+**❓ Requires permission:**
+- Commercial use or integration
+- Redistribution in modified form
+- Publishing derived works
+
+For licensing inquiries, collaboration opportunities, or permission requests, reach out to [kirti676@outlook.com](mailto:kirti676@outlook.com).
+
 ---
 
-**Made with ❤️ for QA/SDET engineers**
+<div align="center">
+
+[![⭐ Star this repo](https://img.shields.io/github/stars/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp)
+[![🍴 Fork this repo](https://img.shields.io/github/forks/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp/fork)
+[![👀 Watch this repo](https://img.shields.io/github/watchers/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp/subscription)
+[![💬 Discussions](https://img.shields.io/github/discussions/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp/discussions)
+
+**🚀 Built with ❤️ for QA/SDET engineers worldwide 🌍**
+
+</div>

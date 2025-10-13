@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.8] - 2025-10-14
+
+### Enhanced
+- **README.md Visual Improvements**: Enhanced documentation layout with better emoji usage and visual hierarchy
+- **Improved Section Organization**: Reorganized sections for better readability and user experience
+- **Enhanced Tool Documentation**: Added more detailed parameter specifications with emojis and examples
+- **Better Feature Highlighting**: Improved visual presentation of multi-language support and progress tracking features
+
+### Fixed
+- **Copyright Section**: Moved copyright information to the bottom for better flow
+- **Installation Section**: Enhanced installation instructions with better formatting
+- **Framework Features**: Improved presentation of framework-specific capabilities
+
 ## [1.4.6] - 2025-10-10
 
 ### Changed
