@@ -359,10 +359,10 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
             spec_type_to_use = detected_type
         
         # Validate final spec type
-        if spec_type_to_use.lower() not in ['openapi', 'swagger', 'postman']:
+        if spec_type_to_use.lower() not in ['openapi', 'swagger', 'postman', 'graphql']:
             return {
                 "success": False,
-                "error": f"Unsupported specification type: {spec_type_to_use}. Supported types: openapi, swagger, postman"
+                "error": f"Unsupported specification type: {spec_type_to_use}. Supported types: openapi, swagger, postman, graphql"
             }
         
         # Parse specification
@@ -377,7 +377,19 @@ async def ingest_spec(params: IngestSpecParams) -> Dict[str, Any]:
             }
         
         # Analyze required environment variables
-        spec_data = json.loads(content) if content.strip().startswith('{') else yaml.safe_load(content)
+        if spec_type == SpecType.GRAPHQL:
+            # For GraphQL, pass the original content for analysis
+            spec_data = content if isinstance(content, str) else str(content)
+            try:
+                # Try to parse as JSON first (for introspection results)
+                if content.strip().startswith('{'):
+                    spec_data = json.loads(content)
+            except json.JSONDecodeError:
+                # Keep as string for SDL parsing
+                pass
+        else:
+            spec_data = json.loads(content) if content.strip().startswith('{') else yaml.safe_load(content)
+        
         env_analysis = analyze_required_env_vars(spec_data, spec_type, parser.base_url)
         
         # Parse language and framework preferences

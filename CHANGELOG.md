@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-10-14
+
+### Removed
+- **Unused dependency**: `aiofiles` from requirements.txt and setup.py (never used in codebase)
+- **Empty directories**: Complete `output/` directory structure with all empty subdirectories
+- **Debug files**: `mcp-interceptor.log` containing development logs
+- **Cache files**: Python `__pycache__` directories and compiled bytecode files
+
+### Fixed
+- **Package configuration**: Fixed `package.json` test script referencing non-existent `test_core.py`
+- **Files list**: Removed reference to non-existent `run.py` from package.json files array
+- **Build reliability**: Eliminated broken file references that could cause packaging issues
+
+### Enhanced
+- **Modern Python packaging**: Comprehensive `pyproject.toml` with full project metadata
+- **Repository cleanliness**: Removed all redundant, unused, and unnecessary files
+- **Maintainability**: Streamlined configuration structure for better long-term maintenance
+
+### Technical Debt Cleanup
+- Conducted comprehensive repository scan for unused imports, dependencies, and files
+- Verified all Python modules are necessary and actively used
+- Confirmed no duplicate functions or redundant code patterns exist
+- Optimized package size by removing unused elements
+
 ## [1.4.8] - 2025-10-14
 
 ### Enhanced

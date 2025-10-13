@@ -39,21 +39,77 @@ def validate_spec_type(content: str) -> Optional[str]:
             import yaml
             data = yaml.safe_load(content)
         except:
+            # If it's not valid JSON or YAML, check if it's GraphQL SDL
+            if _is_graphql_sdl(content):
+                return "graphql"
             return None
     
-    if not isinstance(data, dict):
-        return None
+    if isinstance(data, dict):
+        # Check for OpenAPI/Swagger
+        if "openapi" in data or "swagger" in data:
+            return "openapi"
+        
+        # Check for Postman collection
+        if "info" in data and "item" in data and data.get("info", {}).get("schema"):
+            if "postman" in data["info"]["schema"].lower():
+                return "postman"
+        
+        # Check for GraphQL introspection result
+        if "data" in data and "__schema" in data.get("data", {}):
+            return "graphql"
+        
+        # Check for GraphQL schema object format
+        if "types" in data or "schema" in data:
+            # Look for GraphQL-specific patterns
+            if _has_graphql_patterns(data):
+                return "graphql"
     
-    # Check for OpenAPI/Swagger
-    if "openapi" in data or "swagger" in data:
-        return "openapi"
-    
-    # Check for Postman collection
-    if "info" in data and "item" in data and data.get("info", {}).get("schema"):
-        if "postman" in data["info"]["schema"].lower():
-            return "postman"
+    # Check if it's a string that might be GraphQL SDL
+    elif isinstance(data, str) and _is_graphql_sdl(data):
+        return "graphql"
     
     return None
+
+
+def _is_graphql_sdl(content: str) -> bool:
+    """Check if content is GraphQL Schema Definition Language"""
+    # Look for GraphQL SDL patterns
+    graphql_patterns = [
+        r'\btype\s+Query\s*\{',
+        r'\btype\s+Mutation\s*\{', 
+        r'\btype\s+Subscription\s*\{',
+        r'\bschema\s*\{',
+        r'\binput\s+\w+\s*\{',
+        r'\benum\s+\w+\s*\{',
+        r'\binterface\s+\w+\s*\{',
+        r'\bunion\s+\w+'
+    ]
+    
+    return any(re.search(pattern, content, re.IGNORECASE) for pattern in graphql_patterns)
+
+
+def _has_graphql_patterns(data: Dict[str, Any]) -> bool:
+    """Check if dictionary contains GraphQL-specific patterns"""
+    # Check for GraphQL type system keywords
+    graphql_keywords = ["Query", "Mutation", "Subscription", "schema", "directive"]
+    
+    # Check in top-level keys
+    if any(keyword in data for keyword in graphql_keywords):
+        return True
+    
+    # Check in nested structures
+    if "types" in data:
+        types_data = data["types"]
+        if isinstance(types_data, dict):
+            return any(keyword in types_data for keyword in graphql_keywords)
+    
+    # Check for GraphQL schema format
+    if "schema" in data:
+        schema_data = data["schema"]
+        if isinstance(schema_data, str):
+            return _is_graphql_sdl(schema_data)
+    
+    return False
 
 
 def generate_test_data(schema: Dict[str, Any]) -> Dict[str, Any]:

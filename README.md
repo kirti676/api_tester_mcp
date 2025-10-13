@@ -116,7 +116,7 @@ For MCP clients like Claude Desktop, use this configuration:
 
 ## ✨ Features
 
-- **📥 Input Support**: Swagger/OpenAPI documents and Postman collections
+- **📥 Input Support**: OpenAPI/Swagger documents, Postman collections, and GraphQL schemas
 - **🔄 Test Generation**: Automatic API and Load test scenario generation
 - **🌐 Multi-Language Support**: Generate tests in TypeScript/Playwright, JavaScript/Jest, Python/pytest, and more
 - **⚡ Test Execution**: Run generated tests with detailed reporting
@@ -247,11 +247,11 @@ The API Tester MCP includes comprehensive progress tracking for all operations:
 The server provides 11 comprehensive MCP tools with detailed parameter specifications:
 
 ### 1. 📥 **`ingest_spec`** - Load API Specifications
-Load Swagger/OpenAPI or Postman collections with language/framework preferences
+Load OpenAPI/Swagger, Postman collections, or GraphQL schemas with language/framework preferences
 ```javascript
 {
-  "spec_type": "openapi",           // openapi, swagger, postman (optional, auto-detected)
-  "file_path": "./api-spec.json",   // Path to JSON or YAML specification file (required)
+  "spec_type": "openapi",           // openapi, swagger, postman, graphql (optional, auto-detected)
+  "file_path": "./api-spec.json",   // Path to JSON, YAML, or GraphQL schema file (required)
   "preferred_language": "python",   // python, typescript, javascript (optional, default: python)
   "preferred_framework": "requests" // pytest, requests, playwright, jest, cypress, supertest (optional, default: requests)
 }
@@ -584,6 +584,51 @@ const reports = await mcp.call("list_resources", {
    - 📄 Access HTML reports via MCP resources
    - 📈 Get session status and statistics
 
+### 🚀 GraphQL API Testing Workflow
+
+1. **📥 Ingest GraphQL Schema**
+   ```json
+   {
+     "tool": "ingest_spec",
+     "params": {
+       "spec_type": "graphql",
+       "file_path": "./schema.graphql"
+     }
+   }
+   ```
+
+2. **🔐 Configure GraphQL Endpoint**
+   ```json
+   {
+     "tool": "set_env_vars", 
+     "params": {
+       "graphqlEndpoint": "https://api.example.com/graphql",
+       "auth_bearer": "your-jwt-token"
+     }
+   }
+   ```
+
+3. **🧪 Generate GraphQL Tests**
+   ```json
+   {
+     "tool": "generate_test_cases",
+     "params": {
+       "preferred_language": "python",
+       "preferred_framework": "pytest"
+     }
+   }
+   ```
+
+4. **📊 Execute GraphQL Tests**
+   ```json
+   {
+     "tool": "run_api_tests",
+     "params": {
+       "max_concurrent": 5
+     }
+   }
+   ```
+
 ### ⚡ Load Testing
 
 ```json
@@ -634,7 +679,6 @@ Generated reports include:
 - ✅ jsonschema>=4.0.0
 - 📝 pyyaml>=6.0
 - 🎨 jinja2>=3.1.0
-- 📁 aiofiles>=23.0.0
 - ⚡ aiohttp>=3.8.0
 - 🎭 faker>=19.0.0
 
@@ -693,11 +737,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Roadmap
 
-✅ **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
-
-✅ **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
-
-- [ ] GraphQL API support
+- [x] **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
+- [x] **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
+- [x] **GraphQL API support** - Supports GraphQL Schemas ✨ **NEW!**
 - [ ] Additional authentication methods (OAuth2, JWT)
 - [ ] Go/Golang test generation (with testify/ginkgo)
 - [ ] C#/.NET test generation (with NUnit/xUnit)

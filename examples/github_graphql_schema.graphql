@@ -1,0 +1,221 @@
+"""
+Example GitHub-like GraphQL Schema
+For demonstrating GraphQL API testing with API Tester MCP
+"""
+
+type Query {
+  # Get a user by username
+  user(username: String!): User
+  
+  # Get the currently authenticated user
+  viewer: User!
+  
+  # Search repositories
+  searchRepositories(query: String!, first: Int = 10): RepositoryConnection!
+  
+  # Get a repository
+  repository(owner: String!, name: String!): Repository
+}
+
+type Mutation {
+  # Create a new repository
+  createRepository(input: CreateRepositoryInput!): CreateRepositoryPayload!
+  
+  # Star a repository
+  addStar(input: AddStarInput!): AddStarPayload!
+  
+  # Update user profile
+  updateUser(input: UpdateUserInput!): UpdateUserPayload!
+}
+
+type Subscription {
+  # Listen for new repository events
+  repositoryEvents(owner: String!, name: String!): RepositoryEvent!
+}
+
+# User type representing a GitHub user
+type User {
+  id: ID!
+  username: String!
+  email: String
+  name: String
+  bio: String
+  avatarUrl: String
+  repositories(first: Int = 10): RepositoryConnection!
+  followers: UserConnection!
+  following: UserConnection!
+  createdAt: DateTime!
+}
+
+# Repository type
+type Repository {
+  id: ID!
+  name: String!
+  description: String
+  url: String!
+  isPrivate: Boolean!
+  owner: User!
+  stargazers: UserConnection!
+  forks: RepositoryConnection!
+  issues: IssueConnection!
+  pullRequests: PullRequestConnection!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Connection types for pagination
+type RepositoryConnection {
+  edges: [RepositoryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type RepositoryEdge {
+  node: Repository!
+  cursor: String!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserEdge {
+  node: User!
+  cursor: String!
+}
+
+type IssueConnection {
+  edges: [IssueEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type IssueEdge {
+  node: Issue!
+  cursor: String!
+}
+
+type PullRequestConnection {
+  edges: [PullRequestEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PullRequestEdge {
+  node: PullRequest!
+  cursor: String!
+}
+
+# PageInfo for cursor-based pagination
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Issue type
+type Issue {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  state: IssueState!
+  author: User!
+  repository: Repository!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Pull Request type
+type PullRequest {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  state: PullRequestState!
+  author: User!
+  repository: Repository!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# Repository Event for subscriptions
+type RepositoryEvent {
+  id: ID!
+  type: RepositoryEventType!
+  repository: Repository!
+  user: User!
+  createdAt: DateTime!
+}
+
+# Enums
+enum IssueState {
+  OPEN
+  CLOSED
+}
+
+enum PullRequestState {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum RepositoryEventType {
+  STAR_ADDED
+  STAR_REMOVED
+  FORK_CREATED
+  ISSUE_OPENED
+  ISSUE_CLOSED
+  PULL_REQUEST_OPENED
+  PULL_REQUEST_CLOSED
+  PULL_REQUEST_MERGED
+}
+
+# Input types for mutations
+input CreateRepositoryInput {
+  name: String!
+  description: String
+  isPrivate: Boolean = false
+}
+
+input AddStarInput {
+  repositoryId: ID!
+}
+
+input UpdateUserInput {
+  name: String
+  bio: String
+  email: String
+}
+
+# Payload types for mutations
+type CreateRepositoryPayload {
+  repository: Repository
+  errors: [UserError!]
+}
+
+type AddStarPayload {
+  repository: Repository
+  errors: [UserError!]
+}
+
+type UpdateUserPayload {
+  user: User
+  errors: [UserError!]
+}
+
+# Error handling
+type UserError {
+  message: String!
+  field: String
+}
+
+# Custom scalars
+scalar DateTime
+
+# Directives for authentication (these would be detected by the MCP server)
+directive @auth on FIELD_DEFINITION | OBJECT
+directive @requireAuth on FIELD_DEFINITION

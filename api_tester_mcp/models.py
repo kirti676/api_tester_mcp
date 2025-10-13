@@ -10,6 +10,7 @@ class SpecType(str, Enum):
     OPENAPI = "openapi"
     SWAGGER = "swagger"
     POSTMAN = "postman"
+    GRAPHQL = "graphql"
 
 
 class StatusType(str, Enum):

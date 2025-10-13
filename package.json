@@ -1,6 +1,6 @@
 {
   "name": "@kirti676/api-tester-mcp",
-  "version": "1.4.8",
+  "version": "1.5.0",
   "description": "Multi-language MCP server for API testing with TypeScript/Playwright, JavaScript/Jest, Python/pytest support",
   "main": "cli.js",
   "bin": {
@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node cli.js",
     "build": "echo 'No build needed'",
-    "test": "python -m pytest test_core.py",
+    "test": "echo 'No tests configured'",
     "postinstall": "node scripts/postinstall.js"
   },
   "keywords": [
@@ -56,8 +56,7 @@
     "README.md",
     "LICENSE",
     "pyproject.toml",
-    "requirements.txt",
-    "run.py"
+    "requirements.txt"
   ],
   "dependencies": {},
   "devDependencies": {}

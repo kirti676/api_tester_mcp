@@ -33,6 +33,8 @@ class SpecificationParser:
                 return self._parse_openapi()
             elif spec_type == SpecType.POSTMAN:
                 return self._parse_postman()
+            elif spec_type == SpecType.GRAPHQL:
+                return self._parse_graphql()
             else:
                 raise ValueError(f"Unsupported specification type: {spec_type}")
                 
@@ -174,6 +176,282 @@ class SpecificationParser:
             tags=[],
             auth_required=auth_required
         )
+
+    def _parse_graphql(self) -> List[ApiEndpoint]:
+        """Parse GraphQL schema"""
+        endpoints = []
+        
+        # Check if it's an introspection result or schema SDL
+        if isinstance(self.spec_data, dict) and "data" in self.spec_data:
+            # Handle introspection query result
+            endpoints = self._parse_graphql_introspection()
+        elif isinstance(self.spec_data, str) or (isinstance(self.spec_data, dict) and "schema" in self.spec_data):
+            # Handle GraphQL SDL (Schema Definition Language)
+            endpoints = self._parse_graphql_sdl()
+        else:
+            # Try to parse as schema object
+            endpoints = self._parse_graphql_schema_object()
+        
+        return endpoints
+    
+    def _parse_graphql_introspection(self) -> List[ApiEndpoint]:
+        """Parse GraphQL introspection query result"""
+        endpoints = []
+        
+        try:
+            schema_data = self.spec_data.get("data", {}).get("__schema", {})
+            query_type = schema_data.get("queryType", {})
+            mutation_type = schema_data.get("mutationType", {})
+            subscription_type = schema_data.get("subscriptionType", {})
+            
+            # Parse types to find Query, Mutation, and Subscription fields
+            types = schema_data.get("types", [])
+            type_map = {t.get("name"): t for t in types}
+            
+            # Process Query type
+            if query_type and query_type.get("name") in type_map:
+                query_fields = type_map[query_type["name"]].get("fields", [])
+                for field in query_fields:
+                    endpoint = self._create_graphql_endpoint("query", field, "Query")
+                    endpoints.append(endpoint)
+            
+            # Process Mutation type
+            if mutation_type and mutation_type.get("name") in type_map:
+                mutation_fields = type_map[mutation_type["name"]].get("fields", [])
+                for field in mutation_fields:
+                    endpoint = self._create_graphql_endpoint("mutation", field, "Mutation")
+                    endpoints.append(endpoint)
+            
+            # Process Subscription type
+            if subscription_type and subscription_type.get("name") in type_map:
+                subscription_fields = type_map[subscription_type["name"]].get("fields", [])
+                for field in subscription_fields:
+                    endpoint = self._create_graphql_endpoint("subscription", field, "Subscription")
+                    endpoints.append(endpoint)
+                    
+        except Exception as e:
+            logger.error(f"Failed to parse GraphQL introspection: {str(e)}")
+            
+        return endpoints
+    
+    def _parse_graphql_sdl(self) -> List[ApiEndpoint]:
+        """Parse GraphQL Schema Definition Language"""
+        endpoints = []
+        
+        try:
+            # For SDL, we need to parse the schema text
+            # This is a simplified parser for basic SDL patterns
+            schema_text = self.spec_data if isinstance(self.spec_data, str) else str(self.spec_data.get("schema", ""))
+            
+            # Extract Query type fields
+            query_match = re.search(r'type\s+Query\s*\{([^}]+)\}', schema_text, re.MULTILINE | re.DOTALL)
+            if query_match:
+                query_fields = self._parse_sdl_fields(query_match.group(1))
+                for field in query_fields:
+                    endpoint = self._create_graphql_endpoint("query", field, "Query")
+                    endpoints.append(endpoint)
+            
+            # Extract Mutation type fields
+            mutation_match = re.search(r'type\s+Mutation\s*\{([^}]+)\}', schema_text, re.MULTILINE | re.DOTALL)
+            if mutation_match:
+                mutation_fields = self._parse_sdl_fields(mutation_match.group(1))
+                for field in mutation_fields:
+                    endpoint = self._create_graphql_endpoint("mutation", field, "Mutation")
+                    endpoints.append(endpoint)
+            
+            # Extract Subscription type fields
+            subscription_match = re.search(r'type\s+Subscription\s*\{([^}]+)\}', schema_text, re.MULTILINE | re.DOTALL)
+            if subscription_match:
+                subscription_fields = self._parse_sdl_fields(subscription_match.group(1))
+                for field in subscription_fields:
+                    endpoint = self._create_graphql_endpoint("subscription", field, "Subscription")
+                    endpoints.append(endpoint)
+                    
+        except Exception as e:
+            logger.error(f"Failed to parse GraphQL SDL: {str(e)}")
+            
+        return endpoints
+    
+    def _parse_graphql_schema_object(self) -> List[ApiEndpoint]:
+        """Parse GraphQL schema object format"""
+        endpoints = []
+        
+        try:
+            # Handle schema object with types defined
+            if isinstance(self.spec_data, dict) and "types" in self.spec_data:
+                types = self.spec_data["types"]
+                
+                # Look for Query, Mutation, Subscription types
+                for type_name, type_def in types.items():
+                    if type_name.lower() in ["query", "mutation", "subscription"]:
+                        operation_type = type_name.lower()
+                        fields = type_def.get("fields", {})
+                        
+                        for field_name, field_def in fields.items():
+                            field_obj = {
+                                "name": field_name,
+                                "description": field_def.get("description", ""),
+                                "args": field_def.get("args", []),
+                                "type": field_def.get("type", {})
+                            }
+                            endpoint = self._create_graphql_endpoint(operation_type, field_obj, type_name)
+                            endpoints.append(endpoint)
+                            
+        except Exception as e:
+            logger.error(f"Failed to parse GraphQL schema object: {str(e)}")
+            
+        return endpoints
+    
+    def _parse_sdl_fields(self, fields_text: str) -> List[Dict[str, Any]]:
+        """Parse SDL field definitions from text"""
+        fields = []
+        
+        # Simple regex to match field definitions
+        field_pattern = r'(\w+)\s*(\([^)]*\))?\s*:\s*([^\n]+)'
+        
+        for match in re.finditer(field_pattern, fields_text):
+            field_name = match.group(1)
+            args_text = match.group(2) or ""
+            return_type = match.group(3).strip()
+            
+            # Parse arguments
+            args = []
+            if args_text:
+                args_pattern = r'(\w+)\s*:\s*([^,)]+)'
+                for arg_match in re.finditer(args_pattern, args_text):
+                    args.append({
+                        "name": arg_match.group(1),
+                        "type": {"name": arg_match.group(2).strip()}
+                    })
+            
+            fields.append({
+                "name": field_name,
+                "description": "",
+                "args": args,
+                "type": {"name": return_type}
+            })
+        
+        return fields
+    
+    def _create_graphql_endpoint(self, operation_type: str, field: Dict[str, Any], root_type: str) -> ApiEndpoint:
+        """Create ApiEndpoint from GraphQL field"""
+        
+        # GraphQL operations are always POST to the GraphQL endpoint
+        method = "POST"
+        path = "/graphql"  # Default GraphQL endpoint
+        
+        # Extract field information
+        field_name = field.get("name", "")
+        field_description = field.get("description", "")
+        field_args = field.get("args", [])
+        field_type = field.get("type", {})
+        
+        # Convert GraphQL arguments to parameters
+        parameters = []
+        for arg in field_args:
+            arg_name = arg.get("name", "")
+            arg_type = arg.get("type", {})
+            is_required = self._is_graphql_type_non_null(arg_type)
+            
+            parameters.append({
+                "name": arg_name,
+                "in": "body",  # GraphQL args are in the request body
+                "required": is_required,
+                "type": self._convert_graphql_type(arg_type),
+                "description": arg.get("description", f"GraphQL argument for {field_name}")
+            })
+        
+        # Create request body structure for GraphQL
+        request_body = {
+            "required": True,
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": f"GraphQL {operation_type} string"
+                            },
+                            "variables": {
+                                "type": "object",
+                                "description": "Variables for the GraphQL operation"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }
+        }
+        
+        # Create response structure
+        responses = {
+            "200": {
+                "description": "GraphQL response",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "object",
+                                    "description": f"Response data for {field_name}"
+                                },
+                                "errors": {
+                                    "type": "array",
+                                    "description": "GraphQL errors if any"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return ApiEndpoint(
+            path=path,
+            method=method,
+            summary=f"GraphQL {operation_type}: {field_name}",
+            description=field_description or f"Execute GraphQL {operation_type} for {field_name}",
+            parameters=parameters,
+            request_body=request_body,
+            responses=responses,
+            tags=[f"GraphQL-{root_type}"],
+            auth_required=True  # Most GraphQL APIs require authentication
+        )
+    
+    def _is_graphql_type_non_null(self, type_obj: Dict[str, Any]) -> bool:
+        """Check if GraphQL type is non-null (required)"""
+        if isinstance(type_obj, dict):
+            return type_obj.get("kind") == "NON_NULL"
+        return False
+    
+    def _convert_graphql_type(self, type_obj: Dict[str, Any]) -> str:
+        """Convert GraphQL type to OpenAPI-like type"""
+        if isinstance(type_obj, dict):
+            kind = type_obj.get("kind", "")
+            name = type_obj.get("name", "")
+            
+            if kind == "SCALAR":
+                # Map GraphQL scalars to JSON types
+                scalar_map = {
+                    "String": "string",
+                    "Int": "integer", 
+                    "Float": "number",
+                    "Boolean": "boolean",
+                    "ID": "string"
+                }
+                return scalar_map.get(name, "string")
+            elif kind == "LIST":
+                return "array"
+            elif kind == "NON_NULL":
+                # Unwrap non-null type
+                of_type = type_obj.get("ofType", {})
+                return self._convert_graphql_type(of_type)
+            else:
+                return "object"
+        
+        return "string"
 
 
 class ScenarioGenerator:
@@ -340,6 +618,8 @@ def analyze_required_env_vars(spec_data: Dict[str, Any], spec_type: SpecType, ba
             required_vars, optional_vars, detected_auth_schemes = _analyze_openapi_env_vars(spec_data, base_url)
         elif spec_type == SpecType.POSTMAN:
             required_vars, optional_vars, detected_auth_schemes = _analyze_postman_env_vars(spec_data, base_url)
+        elif spec_type == SpecType.GRAPHQL:
+            required_vars, optional_vars, detected_auth_schemes = _analyze_graphql_env_vars(spec_data, base_url)
         
         # Always suggest baseUrl if not already provided
         if base_url and "baseUrl" not in required_vars and "baseUrl" not in optional_vars:
@@ -603,6 +883,91 @@ def _analyze_postman_env_vars(spec_data: Dict[str, Any], base_url: str) -> tuple
                 "required": False,
                 "type": var_type
             }
+    
+    return required_vars, optional_vars, detected_auth_schemes
+
+
+def _analyze_graphql_env_vars(spec_data: Dict[str, Any], base_url: str) -> tuple:
+    """Analyze GraphQL schema for environment variables"""
+    required_vars = {}
+    optional_vars = {}
+    detected_auth_schemes = set()
+    
+    # GraphQL typically requires authentication for most operations
+    detected_auth_schemes.add("bearer")
+    
+    # Common GraphQL authentication patterns
+    optional_vars["auth_bearer"] = {
+        "description": "Bearer/JWT token for GraphQL authentication",
+        "required": False,
+        "auth_scheme": "bearer"
+    }
+    
+    optional_vars["auth_apikey"] = {
+        "description": "API key for GraphQL authentication (if not using bearer token)",
+        "required": False,
+        "auth_scheme": "apikey"
+    }
+    
+    # GraphQL endpoint URL is typically required
+    if not base_url:
+        required_vars["graphqlEndpoint"] = {
+            "description": "GraphQL endpoint URL (e.g., https://api.example.com/graphql)",
+            "required": True,
+            "type": "url"
+        }
+    
+    # Check for common GraphQL configuration needs
+    optional_vars["graphqlWsEndpoint"] = {
+        "description": "GraphQL WebSocket endpoint for subscriptions (optional)",
+        "required": False,
+        "type": "url"
+    }
+    
+    # Look for specific auth patterns in the schema
+    schema_text = ""
+    if isinstance(spec_data, str):
+        schema_text = spec_data
+    elif isinstance(spec_data, dict):
+        # Check for schema in different formats
+        if "schema" in spec_data:
+            schema_text = str(spec_data["schema"])
+        elif "data" in spec_data:
+            # Introspection result - check for auth-related fields/directives
+            schema_info = spec_data.get("data", {}).get("__schema", {})
+            directives = schema_info.get("directives", [])
+            
+            # Look for auth-related directives
+            for directive in directives:
+                directive_name = directive.get("name", "").lower()
+                if any(auth_term in directive_name for auth_term in ["auth", "authenticated", "authorized"]):
+                    required_vars["auth_bearer"] = {
+                        "description": f"Authentication required (found {directive['name']} directive)",
+                        "required": True,
+                        "auth_scheme": "bearer"
+                    }
+                    break
+    
+    # Look for auth-related patterns in schema text
+    if schema_text:
+        auth_patterns = [
+            r'@auth',
+            r'@authenticated',
+            r'@authorized', 
+            r'@requireAuth',
+            r'Authorization',
+            r'JWT'
+        ]
+        
+        for pattern in auth_patterns:
+            if re.search(pattern, schema_text, re.IGNORECASE):
+                if "auth_bearer" not in required_vars:
+                    required_vars["auth_bearer"] = {
+                        "description": f"Authentication token required (found {pattern} in schema)",
+                        "required": True,
+                        "auth_scheme": "bearer"
+                    }
+                break
     
     return required_vars, optional_vars, detected_auth_schemes
 

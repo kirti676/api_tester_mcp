@@ -87,6 +87,12 @@ await ingest_spec({
     "spec_type": "postman", 
     "file_path": "./path/to/postman-collection.json"
 })
+
+# GraphQL Schema
+await ingest_spec({
+    "spec_type": "graphql",
+    "file_path": "./path/to/schema.graphql"
+})
 ```
 
 ### 2. Configure Environment
@@ -197,6 +203,52 @@ Access reports directly through MCP:
 - Boundary value testing
 - Timeout scenarios
 - Rate limiting tests
+
+## 🚀 GraphQL API Testing
+
+### Supported GraphQL Formats
+- **Schema Definition Language (SDL)**: Standard GraphQL schema files
+- **Introspection Results**: JSON output from GraphQL introspection queries
+- **Schema Objects**: Structured schema definitions in JSON/YAML
+
+### GraphQL-Specific Features
+- **Query/Mutation Detection**: Automatic identification of GraphQL operations
+- **Schema Parsing**: Support for type definitions, interfaces, enums, and unions
+- **Authentication Patterns**: Bearer token and API key detection from schema directives
+- **Test Generation**: GraphQL-specific test templates for Python, TypeScript, and JavaScript
+
+### Example GraphQL Schema (SDL)
+```graphql
+type Query {
+  user(id: ID!): User
+  users(limit: Int = 10): [User!]!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+}
+
+input CreateUserInput {
+  name: String!
+  email: String!
+}
+```
+
+### GraphQL Test Configuration
+```python
+await set_env_vars({
+    "graphqlEndpoint": "https://api.example.com/graphql",
+    "auth_bearer": "your-jwt-token",
+    "graphqlWsEndpoint": "wss://api.example.com/graphql"  # Optional for subscriptions
+})
+```
 
 ## 🚀 Load Testing
 
