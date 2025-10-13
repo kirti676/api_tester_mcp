@@ -693,8 +693,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Roadmap
 
-- ✅ **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
-- ✅ **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
+✅ **Multi-Language Test Generation** - TypeScript/Playwright, JavaScript/Jest, Python/pytest support ✨ **NEW!**
+
+✅ **Complete Project Generation** - Full project scaffolding with dependencies and configuration ✨ **NEW!**
+
 - [ ] GraphQL API support
 - [ ] Additional authentication methods (OAuth2, JWT)
 - [ ] Go/Golang test generation (with testify/ginkgo)
