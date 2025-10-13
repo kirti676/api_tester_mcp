@@ -772,8 +772,6 @@ For licensing inquiries, collaboration opportunities, or permission requests, re
 
 [![⭐ Star this repo](https://img.shields.io/github/stars/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp)
 [![🍴 Fork this repo](https://img.shields.io/github/forks/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp/fork)
-[![👀 Watch this repo](https://img.shields.io/github/watchers/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp/subscription)
-[![💬 Discussions](https://img.shields.io/github/discussions/kirti676/api_tester_mcp?style=social)](https://github.com/kirti676/api_tester_mcp/discussions)
 
 **🚀 Built with ❤️ for QA/SDET engineers worldwide 🌍**
 
