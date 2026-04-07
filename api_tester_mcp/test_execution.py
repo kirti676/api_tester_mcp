@@ -429,59 +429,6 @@ class LoadTestExecutor:
         total_time = time.time() - self.start_time
         return self._analyze_load_test_results(results, total_time)
     
-    async def _simulate_user(self, session: aiohttp.ClientSession, test_cases: List[TestCase], 
-                           user_id: int, delay: float, start_time: float) -> List[Dict[str, Any]]:
-        """Simulate a single user's load test"""
-        await asyncio.sleep(delay)
-        
-        results = []
-        end_time = start_time + self.duration
-        
-        while time.time() < end_time:
-            for test_case in test_cases:
-                if time.time() >= end_time:
-                    break
-                
-                request_start = time.time()
-                try:
-                    kwargs = {
-                        "method": test_case.method,
-                        "url": test_case.url,
-                        "headers": test_case.headers,
-                        "timeout": aiohttp.ClientTimeout(total=test_case.timeout)
-                    }
-                    
-                    if test_case.body:
-                        kwargs["json"] = test_case.body
-                    
-                    async with session.request(**kwargs) as response:
-                        request_time = time.time() - request_start
-                        
-                        result = {
-                            "user_id": user_id,
-                            "test_case_id": test_case.id,
-                            "status_code": response.status,
-                            "response_time": request_time,
-                            "success": 200 <= response.status < 400,
-                            "timestamp": request_start
-                        }
-                        results.append(result)
-                
-                except Exception as e:
-                    request_time = time.time() - request_start
-                    result = {
-                        "user_id": user_id,
-                        "test_case_id": test_case.id,
-                        "status_code": 0,
-                        "response_time": request_time,
-                        "success": False,
-                        "error": str(e),
-                        "timestamp": request_start
-                    }
-                    results.append(result)
-        
-        return results
-    
     def _analyze_load_test_results(self, results: List[Dict[str, Any]], total_time: float) -> Dict[str, Any]:
         """Analyze load test results"""
         if not results:

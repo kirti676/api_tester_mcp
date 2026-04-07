@@ -1,6 +1,5 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 
 // Get the package root directory (one level up from scripts/)
 const packageRoot = path.dirname(__dirname);
@@ -84,16 +83,6 @@ async function setup() {
     
     // Install Python dependencies
     await installPythonDependencies(pythonCmd);
-    
-    // Create output directories
-    const outputDirs = ['output', 'output/reports', 'output/scenarios', 'output/test_cases'];
-    for (const dir of outputDirs) {
-      const dirPath = path.join(packageRoot, dir);
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-        console.log(`📁 Created directory: ${dir}`);
-      }
-    }
     
     console.log('🎉 API Tester MCP setup complete!');
     console.log('\nUsage:');

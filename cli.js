@@ -60,7 +60,7 @@ async function checkPythonInstallation() {
 
 async function checkPythonDependencies() {
   return new Promise((resolve) => {
-    const child = spawn('python', ['-c', 'import fastmcp; import pydantic; import requests'], { stdio: 'pipe' });
+    const child = spawn('python', ['-c', 'import fastmcp; import pydantic'], { stdio: 'pipe' });
     child.on('close', (code) => {
       resolve(code === 0);
     });

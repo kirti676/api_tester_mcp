@@ -55,12 +55,6 @@ def set_workspace_directory(file_path: Optional[str] = None) -> str:
     
     return get_workspace_dir()
 
-def reset_workspace_directory():
-    """Reset workspace directory to default behavior (ignore ingested file directory)."""
-    global ingested_file_directory
-    ingested_file_directory = None
-    logger.info("Workspace directory reset to default behavior")
-
 # Get the workspace directory (current working directory where VS Code is running)
 def get_workspace_dir() -> str:
     """
@@ -188,27 +182,6 @@ def ensure_workspace_output_dir(subdir: str) -> str:
             logger.error(f"Failed to create fallback directory, using workspace directly: {str(e2)}")
             return workspace_dir
 
-# Legacy function for compatibility - now dynamically ensures directories
-def ensure_output_directories():
-    """Create output directories in the current workspace (legacy compatibility)"""
-    workspace_dir = get_workspace_dir()
-    
-    # Use the new dynamic approach for each subdirectory
-    subdirs = ["reports", "scenarios", "test_cases", "generated_projects"]
-    created_dirs = {}
-    
-    for subdir in subdirs:
-        created_dirs[subdir] = ensure_workspace_output_dir(subdir)
-    
-    # Return the base output directory (parent of the first created directory)
-    first_dir = list(created_dirs.values())[0]
-    output_base = os.path.dirname(first_dir)
-    
-    logger.info(f"Output base directory: {output_base}")
-    logger.info(f"Created subdirectories: {created_dirs}")
-    
-    return output_base
-
 # Utility function to check directory permissions
 def check_directory_access(directory_path: str) -> Dict[str, Any]:
     """Check if directory exists and is writable"""
@@ -248,10 +221,6 @@ def check_directory_access(directory_path: str) -> Dict[str, Any]:
             "path": directory_path,
             "error": str(e)
         }
-
-# Initialize output directories (legacy compatibility)
-OUTPUT_BASE_DIR = ensure_output_directories()
-
 
 # Pydantic models for tool parameters
 class IngestSpecParams(BaseModel):
@@ -1583,16 +1552,26 @@ async def get_workspace_info() -> Dict[str, Any]:
     try:
         current_workspace = get_workspace_dir()
         
+        # Compute output paths without creating them
+        output_base = None
+        for name in ["output", "generated", "api-test-output", "mcp-output"]:
+            candidate = os.path.join(current_workspace, name)
+            if os.path.exists(candidate) and os.path.isdir(candidate):
+                output_base = candidate
+                break
+        if output_base is None:
+            output_base = os.path.join(current_workspace, "output")
+
         workspace_info = {
             "success": True,
             "current_workspace_directory": current_workspace,
             "is_from_ingested_file": ingested_file_directory is not None,
             "ingested_file_directory": ingested_file_directory,
             "output_directories": {
-                "reports": ensure_workspace_output_dir("reports"),
-                "scenarios": ensure_workspace_output_dir("scenarios"),
-                "test_cases": ensure_workspace_output_dir("test_cases"),
-                "generated_projects": ensure_workspace_output_dir("generated_projects")
+                "reports": os.path.join(output_base, "reports"),
+                "scenarios": os.path.join(output_base, "scenarios"),
+                "test_cases": os.path.join(output_base, "test_cases"),
+                "generated_projects": os.path.join(output_base, "generated_projects")
             },
             "directory_access": check_directory_access(current_workspace)
         }
@@ -1789,7 +1768,7 @@ async def get_report(report_id: str) -> Resource:
         Resource containing the HTML report content
     """
     try:
-        report_file = os.path.join(OUTPUT_BASE_DIR, "reports", f"{report_id}.html")
+        report_file = os.path.join(ensure_workspace_output_dir("reports"), f"{report_id}.html")
         
         if not os.path.exists(report_file):
             return Resource(
@@ -1831,7 +1810,7 @@ async def list_reports() -> Resource:
         Resource containing a list of available reports
     """
     try:
-        reports_dir = os.path.join(OUTPUT_BASE_DIR, "reports")
+        reports_dir = ensure_workspace_output_dir("reports")
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir, exist_ok=True)
             
