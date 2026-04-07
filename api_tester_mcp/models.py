@@ -1,12 +1,14 @@
 """Configuration and data models for the API Tester MCP server"""
 
-from typing import Dict, List, Optional, Any, Union
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, Field
 
 
 class SpecType(str, Enum):
     """Supported specification types"""
+
     OPENAPI = "openapi"
     SWAGGER = "swagger"
     POSTMAN = "postman"
@@ -15,6 +17,7 @@ class SpecType(str, Enum):
 
 class StatusType(str, Enum):
     """Test execution status"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -23,6 +26,7 @@ class StatusType(str, Enum):
 
 class TestLanguage(str, Enum):
     """Supported test languages"""
+
     PYTHON = "python"
     TYPESCRIPT = "typescript"
     JAVASCRIPT = "javascript"
@@ -30,10 +34,11 @@ class TestLanguage(str, Enum):
 
 class TestFramework(str, Enum):
     """Supported test frameworks"""
+
     # Python frameworks
     PYTEST = "pytest"
     REQUESTS = "requests"
-    
+
     # TypeScript/JavaScript frameworks
     PLAYWRIGHT = "playwright"
     JEST = "jest"
@@ -43,6 +48,7 @@ class TestFramework(str, Enum):
 
 class ApiEndpoint(BaseModel):
     """API endpoint representation"""
+
     path: str
     method: str
     summary: Optional[str] = None
@@ -56,6 +62,7 @@ class ApiEndpoint(BaseModel):
 
 class TestScenario(BaseModel):
     """Test scenario representation"""
+
     id: str
     name: str
     objective: str
@@ -70,6 +77,7 @@ class TestScenario(BaseModel):
 
 class TestCase(BaseModel):
     """Executable test case"""
+
     id: str
     scenario_id: str
     name: str
@@ -82,11 +90,14 @@ class TestCase(BaseModel):
     timeout: int = 30
     language: TestLanguage = TestLanguage.PYTHON
     framework: TestFramework = TestFramework.REQUESTS
-    generated_code: Optional[str] = None  # Generated test code in selected language/framework
+    generated_code: Optional[str] = (
+        None  # Generated test code in selected language/framework
+    )
 
 
 class TestResult(BaseModel):
     """Test execution result"""
+
     test_case_id: str
     status: str
     execution_time: float
@@ -101,6 +112,7 @@ class TestResult(BaseModel):
 
 class TestSession(BaseModel):
     """Test session information"""
+
     id: str
     spec_type: SpecType
     spec_content: Dict[str, Any]

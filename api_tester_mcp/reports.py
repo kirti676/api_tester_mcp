@@ -2,18 +2,22 @@
 
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from .models import TestResult, TestSession
+from typing import Any, Dict, List, Optional
+
 from jinja2 import Template
+
+from .models import TestResult, TestSession
 
 
 class ReportGenerator:
     """Generate HTML reports for test results"""
-    
+
     def __init__(self):
         self.html_template = self._get_html_template()
-    
-    def generate_api_test_report(self, results: List[TestResult], session: TestSession) -> str:
+
+    def generate_api_test_report(
+        self, results: List[TestResult], session: TestSession
+    ) -> str:
         """Generate HTML report for API test results"""
         # Calculate summary statistics
         total_tests = len(results)
@@ -21,11 +25,11 @@ class ReportGenerator:
         failed_tests = sum(1 for r in results if r.status == "failed")
         total_time = sum(r.execution_time for r in results)
         avg_time = total_time / total_tests if total_tests > 0 else 0
-        
+
         # Group results by status
         passed_results = [r for r in results if r.status == "passed"]
         failed_results = [r for r in results if r.status == "failed"]
-        
+
         # Generate report data
         report_data = {
             "title": "API Test Report",
@@ -34,31 +38,35 @@ class ReportGenerator:
                 "total_tests": total_tests,
                 "passed_tests": passed_tests,
                 "failed_tests": failed_tests,
-                "success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0,
+                "success_rate": (
+                    (passed_tests / total_tests * 100) if total_tests > 0 else 0
+                ),
                 "total_time": total_time,
-                "average_time": avg_time
+                "average_time": avg_time,
             },
             "results": {
                 "passed": self._format_api_results(passed_results),
-                "failed": self._format_api_results(failed_results)
+                "failed": self._format_api_results(failed_results),
             },
             "session_info": {
                 "id": session.id,
                 "spec_type": session.spec_type.value,
                 "created_at": session.created_at,
                 "scenarios_count": len(session.scenarios),
-                "test_cases_count": len(session.test_cases)
-            }
+                "test_cases_count": len(session.test_cases),
+            },
         }
-        
+
         return self.html_template.render(**report_data)
-    
-    def generate_load_test_report(self, results: Dict[str, Any], session: TestSession) -> str:
+
+    def generate_load_test_report(
+        self, results: Dict[str, Any], session: TestSession
+    ) -> str:
         """Generate HTML report for load test results"""
         summary = results.get("summary", {})
         response_times = results.get("response_times", {})
         status_codes = results.get("status_codes", {})
-        
+
         report_data = {
             "title": "Load Test Report",
             "timestamp": datetime.now().isoformat(),
@@ -68,17 +76,17 @@ class ReportGenerator:
             "session_info": {
                 "id": session.id,
                 "spec_type": session.spec_type.value,
-                "created_at": session.created_at
+                "created_at": session.created_at,
             },
-            "is_load_test": True
+            "is_load_test": True,
         }
-        
+
         return self.html_template.render(**report_data)
-    
+
     def _format_api_results(self, results: List[TestResult]) -> List[Dict[str, Any]]:
         """Format API test results for HTML display"""
         formatted_results = []
-        
+
         for result in results:
             formatted_result = {
                 "test_case_id": result.test_case_id,
@@ -89,17 +97,19 @@ class ReportGenerator:
                 "assertions_failed": result.assertions_failed,
                 "assertion_details": result.assertion_details,
                 "error_message": result.error_message,
-                "response_preview": self._get_response_preview(result.response_body)
+                "response_preview": self._get_response_preview(result.response_body),
             }
             formatted_results.append(formatted_result)
-        
+
         return formatted_results
-    
-    def _get_response_preview(self, response_body: Optional[str], max_length: int = 200) -> str:
+
+    def _get_response_preview(
+        self, response_body: Optional[str], max_length: int = 200
+    ) -> str:
         """Get a preview of the response body"""
         if not response_body:
             return ""
-        
+
         try:
             # Try to parse as JSON and format nicely
             parsed = json.loads(response_body)
@@ -112,7 +122,7 @@ class ReportGenerator:
             if len(response_body) <= max_length:
                 return response_body
             return response_body[:max_length] + "..."
-    
+
     def _get_html_template(self) -> Template:
         """Get the HTML template for reports"""
         template_str = """

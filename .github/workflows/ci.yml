@@ -41,7 +41,7 @@ jobs:
       - name: Lint Python code
         run: |
           pip install black isort mypy
-          black --check api_tester_mcp/
+          black --check --target-version py310 api_tester_mcp/
           isort --check-only api_tester_mcp/
           # mypy api_tester_mcp/ --ignore-missing-imports
 

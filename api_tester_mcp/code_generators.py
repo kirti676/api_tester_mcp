@@ -1,76 +1,113 @@
 """Code generators for different languages and testing frameworks"""
 
 import json
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from jinja2 import Template
-from .models import TestCase, TestLanguage, TestFramework
+
+from .models import TestCase, TestFramework, TestLanguage
 
 
 class CodeGenerator:
     """Base class for code generators"""
-    
+
     def __init__(self, language: TestLanguage, framework: TestFramework):
         self.language = language
         self.framework = framework
-    
-    def generate_test_code(self, test_cases: List[TestCase], session_info: Dict[str, Any]) -> str:
+
+    def generate_test_code(
+        self, test_cases: List[TestCase], session_info: Dict[str, Any]
+    ) -> str:
         """Generate test code for the given test cases"""
-        
+
         # Check if we have GraphQL test cases
         is_graphql = self._is_graphql_test_suite(test_cases)
-        
+
         # Get the appropriate template
         template = self._get_template(is_graphql)
-        
+
         return template.render(
             test_cases=test_cases,
             session_info=session_info,
             language=self.language.value,
             framework=self.framework.value,
-            is_graphql=is_graphql
+            is_graphql=is_graphql,
         )
-    
+
     def _is_graphql_test_suite(self, test_cases: List[TestCase]) -> bool:
         """Check if test cases are for GraphQL endpoints"""
         if not test_cases:
             return False
-        
+
         # Check if any test case has GraphQL characteristics
         for test_case in test_cases:
-            if (test_case.url and "/graphql" in test_case.url) or \
-               (test_case.name and "GraphQL" in test_case.name):
+            if (test_case.url and "/graphql" in test_case.url) or (
+                test_case.name and "GraphQL" in test_case.name
+            ):
                 return True
-                
+
         return False
-    
+
     def _get_template(self, is_graphql: bool = False) -> Template:
         """Get the appropriate template for this language/framework combination"""
         if is_graphql:
             # Use GraphQL-specific templates when available
-            if self.language == TestLanguage.PYTHON and self.framework == TestFramework.REQUESTS:
+            if (
+                self.language == TestLanguage.PYTHON
+                and self.framework == TestFramework.REQUESTS
+            ):
                 return Template(PYTHON_REQUESTS_GRAPHQL_TEMPLATE)
-            elif self.language == TestLanguage.PYTHON and self.framework == TestFramework.PYTEST:
+            elif (
+                self.language == TestLanguage.PYTHON
+                and self.framework == TestFramework.PYTEST
+            ):
                 return Template(PYTHON_PYTEST_GRAPHQL_TEMPLATE)
-            elif self.language == TestLanguage.TYPESCRIPT and self.framework == TestFramework.PLAYWRIGHT:
+            elif (
+                self.language == TestLanguage.TYPESCRIPT
+                and self.framework == TestFramework.PLAYWRIGHT
+            ):
                 return Template(TYPESCRIPT_PLAYWRIGHT_GRAPHQL_TEMPLATE)
-            elif self.language == TestLanguage.JAVASCRIPT and self.framework == TestFramework.JEST:
+            elif (
+                self.language == TestLanguage.JAVASCRIPT
+                and self.framework == TestFramework.JEST
+            ):
                 return Template(JAVASCRIPT_JEST_GRAPHQL_TEMPLATE)
-        
+
         # Use regular templates for REST APIs or unsupported GraphQL combinations
-        if self.language == TestLanguage.TYPESCRIPT and self.framework == TestFramework.PLAYWRIGHT:
+        if (
+            self.language == TestLanguage.TYPESCRIPT
+            and self.framework == TestFramework.PLAYWRIGHT
+        ):
             return Template(TYPESCRIPT_PLAYWRIGHT_TEMPLATE)
-        elif self.language == TestLanguage.JAVASCRIPT and self.framework == TestFramework.JEST:
+        elif (
+            self.language == TestLanguage.JAVASCRIPT
+            and self.framework == TestFramework.JEST
+        ):
             return Template(JAVASCRIPT_JEST_TEMPLATE)
-        elif self.language == TestLanguage.PYTHON and self.framework == TestFramework.PYTEST:
+        elif (
+            self.language == TestLanguage.PYTHON
+            and self.framework == TestFramework.PYTEST
+        ):
             return Template(PYTHON_PYTEST_TEMPLATE)
-        elif self.language == TestLanguage.PYTHON and self.framework == TestFramework.REQUESTS:
+        elif (
+            self.language == TestLanguage.PYTHON
+            and self.framework == TestFramework.REQUESTS
+        ):
             return Template(PYTHON_REQUESTS_TEMPLATE)
-        elif self.language == TestLanguage.TYPESCRIPT and self.framework == TestFramework.SUPERTEST:
+        elif (
+            self.language == TestLanguage.TYPESCRIPT
+            and self.framework == TestFramework.SUPERTEST
+        ):
             return Template(TYPESCRIPT_SUPERTEST_TEMPLATE)
-        elif self.language == TestLanguage.JAVASCRIPT and self.framework == TestFramework.CYPRESS:
+        elif (
+            self.language == TestLanguage.JAVASCRIPT
+            and self.framework == TestFramework.CYPRESS
+        ):
             return Template(JAVASCRIPT_CYPRESS_TEMPLATE)
         else:
-            raise ValueError(f"Unsupported language/framework combination: {self.language.value}/{self.framework.value}")
+            raise ValueError(
+                f"Unsupported language/framework combination: {self.language.value}/{self.framework.value}"
+            )
 
 
 # TypeScript + Playwright Template
@@ -142,7 +179,7 @@ test('{{ test_case.name }}', async ({ request }) => {
 {% endfor %}
 """
 
-# JavaScript + Jest Template  
+# JavaScript + Jest Template
 JAVASCRIPT_JEST_TEMPLATE = """
 const axios = require('axios');
 
@@ -996,19 +1033,45 @@ describe('GraphQL API Tests', () => {
 def get_supported_combinations() -> List[Dict[str, str]]:
     """Get list of supported language/framework combinations"""
     return [
-        {"language": "typescript", "framework": "playwright", "description": "TypeScript with Playwright for robust E2E testing (supports GraphQL)"},
-        {"language": "typescript", "framework": "supertest", "description": "TypeScript with Supertest for Express.js API testing"},
-        {"language": "javascript", "framework": "jest", "description": "JavaScript with Jest for unit and API testing (supports GraphQL)"},
-        {"language": "javascript", "framework": "cypress", "description": "JavaScript with Cypress for E2E API testing"},
-        {"language": "python", "framework": "pytest", "description": "Python with pytest for comprehensive testing (supports GraphQL)"},
-        {"language": "python", "framework": "requests", "description": "Python with requests library for simple API testing (supports GraphQL)"},
+        {
+            "language": "typescript",
+            "framework": "playwright",
+            "description": "TypeScript with Playwright for robust E2E testing (supports GraphQL)",
+        },
+        {
+            "language": "typescript",
+            "framework": "supertest",
+            "description": "TypeScript with Supertest for Express.js API testing",
+        },
+        {
+            "language": "javascript",
+            "framework": "jest",
+            "description": "JavaScript with Jest for unit and API testing (supports GraphQL)",
+        },
+        {
+            "language": "javascript",
+            "framework": "cypress",
+            "description": "JavaScript with Cypress for E2E API testing",
+        },
+        {
+            "language": "python",
+            "framework": "pytest",
+            "description": "Python with pytest for comprehensive testing (supports GraphQL)",
+        },
+        {
+            "language": "python",
+            "framework": "requests",
+            "description": "Python with requests library for simple API testing (supports GraphQL)",
+        },
     ]
 
 
-def generate_package_files(language: TestLanguage, framework: TestFramework) -> Dict[str, str]:
+def generate_package_files(
+    language: TestLanguage, framework: TestFramework
+) -> Dict[str, str]:
     """Generate package configuration files for the selected language/framework"""
     files = {}
-    
+
     if language == TestLanguage.TYPESCRIPT:
         if framework == TestFramework.PLAYWRIGHT:
             files["package.json"] = """{
@@ -1025,7 +1088,9 @@ def generate_package_files(language: TestLanguage, framework: TestFramework) -> 
     "typescript": "^5.0.0"
   }
 }"""
-            files["playwright.config.ts"] = """import { defineConfig } from '@playwright/test';
+            files[
+                "playwright.config.ts"
+            ] = """import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
@@ -1038,7 +1103,7 @@ export default defineConfig({
     }
   }
 });"""
-            
+
         elif framework == TestFramework.SUPERTEST:
             files["package.json"] = """{
   "name": "api-tests",
@@ -1062,7 +1127,7 @@ export default defineConfig({
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts']
 };"""
-    
+
     elif language == TestLanguage.JAVASCRIPT:
         if framework == TestFramework.JEST:
             files["package.json"] = """{
@@ -1097,7 +1162,7 @@ export default defineConfig({
     specPattern: 'cypress/e2e/**/*.cy.js'
   }
 };"""
-    
+
     elif language == TestLanguage.PYTHON:
         if framework == TestFramework.PYTEST:
             files["requirements.txt"] = """pytest>=7.0.0
@@ -1108,5 +1173,5 @@ testpaths = tests
 addopts = --html=report.html --self-contained-html -v"""
         elif framework == TestFramework.REQUESTS:
             files["requirements.txt"] = """requests>=2.28.0"""
-    
+
     return files
