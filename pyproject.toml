@@ -54,3 +54,11 @@ dev = [
 
 [tool.setuptools.dynamic]
 version = {attr = "api_tester_mcp.__version__"}
+
+[tool.black]
+target-version = ["py310"]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+line_length = 88

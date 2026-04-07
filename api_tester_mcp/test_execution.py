@@ -9,8 +9,14 @@ from typing import Any, Dict, List, Optional
 import aiohttp
 
 from .code_generators import CodeGenerator
-from .models import (ApiEndpoint, TestCase, TestFramework, TestLanguage,
-                     TestResult, TestScenario)
+from .models import (
+    ApiEndpoint,
+    TestCase,
+    TestFramework,
+    TestLanguage,
+    TestResult,
+    TestScenario,
+)
 from .utils import ProgressTracker, generate_id, generate_test_data, logger
 
 
