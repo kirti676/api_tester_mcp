@@ -1,0 +1,13 @@
+# Render deployment configuration
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: api-tester-mcp
+    runtime: python
+    region: oregon           # change to closest region if needed
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m api_tester_mcp
+    healthCheckPath: /health  # served by HealthMiddleware in server.py
+    autoDeploy: true

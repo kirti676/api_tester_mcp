@@ -1944,18 +1944,6 @@ def main():
 
     parser = argparse.ArgumentParser(description="API Tester MCP Server")
     parser.add_argument("--log-level", default="INFO", help="Log level")
-    parser.add_argument(
-        "--transport",
-        default=None,
-        choices=["stdio", "sse", "streamable-http"],
-        help="Transport type (default: auto-detect based on PORT env var)",
-    )
-    parser.add_argument(
-        "--host", default="0.0.0.0", help="Host to bind to for HTTP transports"
-    )
-    parser.add_argument(
-        "--port", type=int, default=None, help="Port to listen on for HTTP transports"
-    )
 
     args = parser.parse_args()
 
@@ -1965,25 +1953,58 @@ def main():
 
     logger.info("Starting API Tester MCP Server")
 
-    # Resolve port: CLI arg > PORT env var > default 8000
     env_port = os.environ.get("PORT")
-    port = args.port or (int(env_port) if env_port else 8000)
 
-    # Resolve transport: CLI arg > auto-detect from PORT env var > default stdio
-    if args.transport:
-        transport = args.transport
-    elif env_port:
-        # Running in a cloud environment (Railway, Render, Fly.io, etc.)
-        transport = "streamable-http"
-    else:
-        transport = "stdio"
-
-    if transport == "stdio":
+    if not env_port:
+        # Local / stdio mode — unchanged behaviour for VS Code / Claude Desktop
         logger.info("Running with stdio transport")
         mcp.run()
-    else:
-        logger.info(f"Running with {transport} transport on {args.host}:{port}")
-        mcp.run(transport=transport, host=args.host, port=port)
+        return
+
+    # --- HTTP mode (Render, Railway, Fly.io, …) ---
+    port = int(env_port)
+    host = "0.0.0.0"
+    logger.info(f"HTTP mode: binding on {host}:{port}")
+
+    import uvicorn
+
+    class HealthMiddleware:
+        """ASGI middleware that handles GET /health before MCP traffic."""
+
+        def __init__(self, app):
+            self._app = app
+
+        async def __call__(self, scope, receive, send):
+            if scope.get("type") == "http" and scope.get("path") == "/health":
+                await send({
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [(b"content-type", b"text/plain; charset=utf-8")],
+                })
+                await send({"type": "http.response.body", "body": b"OK"})
+                return
+            await self._app(scope, receive, send)
+
+    # FastMCP exposes its ASGI app under different names across versions;
+    # try each in sequence and fall back to mcp.run() if none is found.
+    asgi_app = None
+    for _method_name in ("streamable_http_app", "http_app", "get_asgi_app"):
+        _fn = getattr(mcp, _method_name, None)
+        if callable(_fn):
+            try:
+                asgi_app = _fn()
+                logger.info(f"Obtained ASGI app via mcp.{_method_name}()")
+                break
+            except Exception:
+                continue
+
+    if asgi_app is None:
+        # Older FastMCP: delegate entirely to mcp.run() — no /health endpoint
+        logger.info("No ASGI accessor found; using mcp.run() with streamable-http transport")
+        mcp.run(transport="streamable-http", host=host, port=port)
+        return
+
+    uvicorn.run(HealthMiddleware(asgi_app), host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
