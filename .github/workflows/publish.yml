@@ -35,6 +35,11 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install --ignore-scripts
 
+      - name: Verify npm authentication
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Run tests
         run: |
           # Add test commands here when available
