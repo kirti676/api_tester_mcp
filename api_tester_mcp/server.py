@@ -1941,20 +1941,50 @@ Format your analysis with clear headings and actionable recommendations."""
 def main():
     """Main function to run the MCP server"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="API Tester MCP Server")
     parser.add_argument("--log-level", default="INFO", help="Log level")
-    
+    parser.add_argument(
+        "--transport",
+        default=None,
+        choices=["stdio", "sse", "streamable-http"],
+        help="Transport type (default: auto-detect based on PORT env var)",
+    )
+    parser.add_argument(
+        "--host", default="0.0.0.0", help="Host to bind to for HTTP transports"
+    )
+    parser.add_argument(
+        "--port", type=int, default=None, help="Port to listen on for HTTP transports"
+    )
+
     args = parser.parse_args()
-    
+
     # Configure logging
     import logging
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
-    
+
     logger.info("Starting API Tester MCP Server")
-    
-    # Run the server (FastMCP uses stdio transport by default for MCP)
-    mcp.run()
+
+    # Resolve port: CLI arg > PORT env var > default 8000
+    env_port = os.environ.get("PORT")
+    port = args.port or (int(env_port) if env_port else 8000)
+
+    # Resolve transport: CLI arg > auto-detect from PORT env var > default stdio
+    if args.transport:
+        transport = args.transport
+    elif env_port:
+        # Running in a cloud environment (Railway, Render, Fly.io, etc.)
+        transport = "streamable-http"
+    else:
+        transport = "stdio"
+
+    if transport == "stdio":
+        logger.info("Running with stdio transport")
+        mcp.run()
+    else:
+        logger.info(f"Running with {transport} transport on {args.host}:{port}")
+        mcp.run(transport=transport, host=args.host, port=port)
+
 
 if __name__ == "__main__":
     main()
