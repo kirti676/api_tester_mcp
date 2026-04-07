@@ -7,6 +7,10 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main, master]
 
 permissions:
   contents: write  # Required for creating releases
@@ -15,6 +19,9 @@ permissions:
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,16 +31,6 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
 
       - name: Install Node.js dependencies
         run: npm install --ignore-scripts
@@ -73,6 +70,9 @@ jobs:
 
   publish-pypi:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -94,7 +94,8 @@ jobs:
         id: pypi-check
         run: |
           set +e
-          pip index versions api-tester-mcp | grep -q "$(python setup.py --version)"
+          PKG_VERSION=$(python -c "exec(open('api_tester_mcp/__init__.py').read()); print(__version__)")
+          pip index versions api-tester-mcp 2>/dev/null | grep -q "$PKG_VERSION"
           if [ $? -eq 0 ]; then
             echo "version_exists=true" >> $GITHUB_OUTPUT
             echo "Package version already exists on PyPI"
@@ -116,6 +117,7 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
+    needs: [publish-npm, publish-pypi]
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write

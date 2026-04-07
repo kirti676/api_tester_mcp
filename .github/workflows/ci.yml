@@ -13,7 +13,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        node-version: ['14', '16', '18']
+        node-version: ['18', '20', '22']
 
     steps:
       - name: Checkout code
@@ -36,7 +36,7 @@ jobs:
           pip install pytest pytest-asyncio
 
       - name: Install Node.js dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Lint Python code
         run: |
@@ -48,12 +48,13 @@ jobs:
       - name: Test Python package
         run: |
           python -c "import api_tester_mcp; print('Import successful')"
-          python -m api_tester_mcp.server --help
+          python -m api_tester_mcp --help
 
       - name: Test npm package
+        shell: bash
         run: |
-          node index.js --help
-          node scripts/postinstall.js --help || true
+          node cli.js --help
+          node scripts/postinstall.js || true
 
       - name: Test installation
         run: |
